@@ -1,0 +1,16 @@
+{
+  "name": "dashboard",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Personal Trello-style dashboard with AI-operable docs and MCP",
+  "workspaces": ["server", "web", "mcp"],
+  "scripts": {
+    "dev:server": "npm run dev -w dashboard-server",
+    "dev:web": "npm run dev -w dashboard-web",
+    "build:web": "npm run build -w dashboard-web",
+    "start": "node server/src/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

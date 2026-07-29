@@ -1,0 +1,15 @@
+{
+  "name": "dashboard-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "dashboard-mcp": "src/index.js",
+    "dashboard-mcp-http": "src/http.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "express": "^4.21.0"
+  }
+}
