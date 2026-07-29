@@ -143,11 +143,12 @@ describe('CodeQL workflow (.github/workflows/codeql.yml)', () => {
     assert.match(crons[0], /^\d{1,2} \d{1,2} \* \* \d$/, 'cron must be a weekly schedule');
   });
 
-  it('grants security-events: write only at the job level, contents: read elsewhere', () => {
+  it('grants only the permissions required by the CodeQL analyze job', () => {
     assert.deepEqual(wf.permissions, { contents: 'read' }, 'workflow default stays read-only');
     const jobs = Object.values(wf.jobs);
     assert.equal(jobs.length, 1, 'single analyze job');
     assert.deepEqual(jobs[0].permissions, {
+      'actions': 'read',
       'contents': 'read',
       'security-events': 'write',
     });
