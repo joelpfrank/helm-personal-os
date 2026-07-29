@@ -45,3 +45,4 @@ jobs:
           # public runs upload automatically once visibility changes. Resolve
           # through the API because scheduled event payloads omit repository.
           upload: "${{ steps.visibility.outputs.private == 'false' && 'always' || 'never' }}"
+          upload-database: "${{ steps.visibility.outputs.private == 'false' }}"

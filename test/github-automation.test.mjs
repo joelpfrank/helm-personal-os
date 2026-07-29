@@ -170,6 +170,9 @@ describe('CodeQL workflow (.github/workflows/codeql.yml)', () => {
     assert.equal(analyze.with?.upload,
       "${{ steps.visibility.outputs.private == 'false' && 'always' || 'never' }}",
       'private rehearsal must never upload; public runs must always upload for every trigger');
+    assert.equal(analyze.with?.['upload-database'],
+      "${{ steps.visibility.outputs.private == 'false' }}",
+      'private rehearsal must not attempt the separate CodeQL database upload');
   });
 
   it('pins every action to an immutable full commit SHA with a version comment', () => {
