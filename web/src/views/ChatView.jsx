@@ -132,6 +132,7 @@ export default function ChatView() {
           </button>
         </div>
         <FirstRunHint id="chat">{t('hint.chat')}</FirstRunHint>
+        <div className="chat-crisis-note muted">{t('chat.crisisNote')}</div>
         {chatUnavailable && (
           <div className="chat-banner err">
             <strong>{status.summary || t('composer.unavailable')}</strong>

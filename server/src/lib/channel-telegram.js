@@ -4,8 +4,11 @@
 // token that another process is polling because two pollers conflict. Set
 // HELM_COACH_BOT_TOKEN to enable;
 // with no token this stays completely dormant, so existing instances are
-// unaffected. Optionally restrict access with HELM_COACH_ALLOWED_USER_ID
-// (comma-separated Telegram user ids).
+// unaffected. HELM_COACH_ALLOWED_USER_ID (comma-separated Telegram user ids)
+// is MANDATORY once a token is set — a Telegram bot's username is public and
+// discoverable, so without an allowlist any stranger who finds it could talk
+// to your coach and read/write through it. A token with no allowlist refuses
+// to start at all rather than silently accepting messages from anyone.
 //
 // Dependency-free: talks to the Telegram Bot API over fetch (long-poll
 // getUpdates + sendMessage), so there is nothing extra to install.
@@ -15,6 +18,11 @@ import { converseOnChannel } from './channels.js';
 const TOKEN = process.env.HELM_COACH_BOT_TOKEN || '';
 const ALLOWED = (process.env.HELM_COACH_ALLOWED_USER_ID || '')
   .split(',').map((s) => s.trim()).filter(Boolean);
+
+// Fail closed: with an empty allowlist, nobody is allowed — not "everybody".
+export function isAllowedSender(fromId) {
+  return ALLOWED.includes(String(fromId));
+}
 
 const API = (method) => `https://api.telegram.org/bot${TOKEN}/${method}`;
 let running = false;
@@ -47,7 +55,7 @@ async function handle(msg) {
   const chatId = msg.chat?.id;
   if (chatId == null) return;
   const fromId = String(msg.from?.id || '');
-  if (ALLOWED.length && !ALLOWED.includes(fromId)) return;   // ignore strangers
+  if (!isAllowedSender(fromId)) return;   // fail closed — ignore anyone not on the allowlist
   const text = msg.text;
   if (!text) {
     await tg('sendMessage', { chat_id: chatId, text: 'I can only read text for now.' });
@@ -91,6 +99,14 @@ async function loop() {
 export function startTelegramCoach() {
   if (!TOKEN) {
     console.log('[channels] Telegram coach disabled (set HELM_COACH_BOT_TOKEN to enable)');
+    return;
+  }
+  if (!ALLOWED.length) {
+    console.error(
+      '[channels] Telegram coach NOT started: HELM_COACH_BOT_TOKEN is set but HELM_COACH_ALLOWED_USER_ID is empty. ' +
+      'Set HELM_COACH_ALLOWED_USER_ID to your Telegram user id(s) (comma-separated) to enable — ' +
+      'refusing to start with no allowlist, since that would let any Telegram user reach your coach.',
+    );
     return;
   }
   if (running) return;

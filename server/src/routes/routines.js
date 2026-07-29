@@ -92,6 +92,7 @@ router.post('/', (req, res, next) => {
           Number.isFinite(e.target_weight) ? e.target_weight : null,
           Number.isInteger(e.target_time_seconds) ? e.target_time_seconds : null,
           Number.isFinite(e.target_distance_m) ? e.target_distance_m : null,
+          Number.isInteger(e.superset_group) ? e.superset_group : null,
           typeof e.notes === 'string' ? e.notes : '',
         );
         pos += 1000;

@@ -18,7 +18,7 @@ node mcp/src/index.js
 
 A compatible MCP host should launch that command from the Helm installation. The process communicates JSON-RPC over stdin/stdout and sends diagnostics to stderr. Tool calls are forwarded to `DASHBOARD_URL`, which defaults to `http://127.0.0.1:8787`.
 
-The macOS installer can register this server automatically with Hermes when the `hermes` command is available. Registration is local configuration, not publication of the service to a network.
+[Hermes Agent](https://hermes-agent.nousresearch.com/docs) is an optional third-party MCP-compatible agent host; Helm does not require it. When the `hermes` command is available on PATH, the macOS installer can optionally register this server with it automatically (`--no-hermes` skips this). See [HERMES-INSTALL.md](../HERMES-INSTALL.md). Registration is local configuration, not publication of the service to a network.
 
 ## Streamable HTTP transport
 

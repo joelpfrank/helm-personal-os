@@ -86,16 +86,16 @@ router.get('/auth/callback', async (req, res, next) => {
   try {
     const { code, state, error } = req.query;
     if (error) {
-      return res.status(400).send(authPage(`Google rejected the consent: ${error}`));
+      return sendAuthPage(res, 400, `Google rejected the consent: ${escapeHtml(error)}`);
     }
     if (!code || !state || !consumeState(String(state))) {
-      return res.status(400).send(authPage('Invalid or expired OAuth state. Try /api/calendar/auth/start again.'));
+      return sendAuthPage(res, 400, 'Invalid or expired OAuth state. Try /api/calendar/auth/start again.');
     }
     const tokens = await exchangeCodeForTokens(String(code));
     if (!tokens.refresh_token) {
-      return res.status(400).send(authPage(
+      return sendAuthPage(res, 400,
         'Google did not return a refresh token. This usually means a prior consent is cached — revoke at https://myaccount.google.com/permissions and re-authorize.',
-      ));
+      );
     }
     const nowMs = Date.now();
     saveSettings({
@@ -124,9 +124,9 @@ router.get('/auth/callback', async (req, res, next) => {
     // Kick off an initial sync (don't await — return UI quickly).
     syncCalendar().catch((e) => console.error('[calendar] initial sync error', e));
 
-    res.send(authPage(
-      `✅ Connected to ${email || 'Google'}. Calendar: ${primary?.summary || primary?.id || 'primary'}. Initial sync running in the background. You can close this tab.`,
-    ));
+    sendAuthPage(res, 200,
+      `✅ Connected to ${escapeHtml(email || 'Google')}. Calendar: ${escapeHtml(primary?.summary || primary?.id || 'primary')}. Initial sync running in the background. You can close this tab.`,
+    );
   } catch (e) { next(e); }
 });
 
@@ -384,6 +384,16 @@ function parseHHMM(s) {
   return Number(m[1]) * 60 + Number(m[2]);
 }
 
+const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (c) => HTML_ESCAPES[c]);
+}
+
+// This page is served unauthenticated (Google redirects the browser here
+// directly, so it can't carry our bearer token — see auth.js SKIP_PREFIXES).
+// Every dynamic value reaching authPage() must already be HTML-escaped by
+// the caller. The CSP is belt-and-suspenders: no script is ever legitimately
+// needed here, so script-src is denied outright regardless of escaping.
 function authPage(msg) {
   return `<!doctype html><html><head><meta charset="utf-8"><title>Helm Calendar Auth</title>
 <style>
@@ -396,6 +406,12 @@ function authPage(msg) {
     <p>${msg}</p>
   </div>
 </body></html>`;
+}
+
+function sendAuthPage(res, status, msg) {
+  res.status(status)
+    .set('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'")
+    .send(authPage(msg));
 }
 
 export default router;

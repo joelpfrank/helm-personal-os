@@ -41,7 +41,7 @@ export const STRINGS = {
 
     'intro.skip': 'Skip', 'intro.next': 'Next', 'intro.back': 'Back', 'intro.start': 'Get started',
     'intro.s1.title': 'Welcome to Helm', 'intro.s1.body': 'Your life, with a coach who actually knows you. Most apps just track your life — Helm helps you build it.',
-    'intro.s2.title': 'Everything in one place', 'intro.s2.body': 'Your vision, goals, habits, tasks, workouts, food and calendar — connected in one place, not scattered across ten different apps.',
+    'intro.s2.title': 'Everything in one place', 'intro.s2.body': 'Your vision, goals, habits, tasks, workouts, food and coaching — connected in one place, not scattered across ten different apps.',
     'intro.s3.title': 'A coach in your pocket', 'intro.s3.body': 'Talk to it like a person, or type. It knows your goals, keeps you honest, and turns big plans into today’s three things.',
     'intro.s4.title': 'Become who you want to be', 'intro.s4.body': 'Helm ties every small daily action back to the person you’re trying to become. That’s the whole game.',
     'intro.s5.title': 'Let’s find your north star', 'intro.s5.body': 'First, a short chat to map where you’re headed — just a few minutes. Then Helm builds everything around it.',
@@ -55,7 +55,8 @@ export const STRINGS = {
 
     'hint.today': '👋 This is your home base — your day, goals and habits at a glance. New here? Start with the card just below to set Helm up around you.',
     'hint.chat': '💬 This is your coach — talk or type. It can plan your day, log meals and workouts, set goals, and more. Tap the mic to dictate.',
-    'hint.library': '📚 Everything Helm tracks lives here — tap a section to open it. Goals and Vision are your direction; Tasks, Habits, Workouts, Food and Calendar are the day-to-day.',
+    'hint.library': '📚 Everything in the simplified Helm workspace lives here — tap a section to open it. Goals and Vision are your direction; Tasks, Habits, Workouts and Food are the day-to-day.',
+    'chat.crisisNote': 'Not a crisis service. In a crisis or if you are thinking about harming yourself, contact your local emergency services or a crisis helpline and reach out to someone you trust.',
 
     'composer.placeholder': 'Type a message, or tap the mic to talk', 'composer.transcribing': 'Transcribing…',
     'composer.recording': 'Recording… tap the mic to stop & transcribe',
@@ -88,7 +89,7 @@ export const STRINGS = {
 
     'intro.skip': 'Saltar', 'intro.next': 'Siguiente', 'intro.back': 'Atrás', 'intro.start': 'Empezar',
     'intro.s1.title': 'Bienvenido a Helm', 'intro.s1.body': 'Tu vida, con un coach que de verdad te conoce. La mayoría de las apps solo registran tu vida — Helm te ayuda a construirla.',
-    'intro.s2.title': 'Todo en un solo lugar', 'intro.s2.body': 'Tu visión, metas, hábitos, tareas, entrenamientos, comida y calendario — conectados en un solo lugar, no repartidos en diez apps distintas.',
+    'intro.s2.title': 'Todo en un solo lugar', 'intro.s2.body': 'Tu visión, metas, hábitos, tareas, entrenamientos, comida y coaching — conectados en un solo lugar, no repartidos en diez apps distintas.',
     'intro.s3.title': 'Un coach en tu bolsillo', 'intro.s3.body': 'Háblale como a una persona, o escríbele. Conoce tus metas, te mantiene honesto y convierte grandes planes en las tres cosas de hoy.',
     'intro.s4.title': 'Conviértete en quien quieres ser', 'intro.s4.body': 'Helm conecta cada pequeña acción diaria con la persona en la que te quieres convertir. De eso se trata todo.',
     'intro.s5.title': 'Encontremos tu norte', 'intro.s5.body': 'Primero, una charla corta para mapear hacia dónde vas — solo unos minutos. Luego Helm construye todo a tu alrededor.',
@@ -102,7 +103,8 @@ export const STRINGS = {
 
     'hint.today': '👋 Esta es tu base — tu día, metas y hábitos de un vistazo. ¿Nuevo por aquí? Empieza con la tarjeta de abajo para configurar Helm a tu medida.',
     'hint.chat': '💬 Este es tu coach — háblale o escríbele. Puede planear tu día, registrar comidas y entrenamientos, fijar metas y más. Toca el micrófono para dictar.',
-    'hint.library': '📚 Todo lo que Helm registra vive aquí — toca una sección para abrirla. Metas y Visión son tu rumbo; Tareas, Hábitos, Entrenamientos, Comida y Calendario son el día a día.',
+    'hint.library': '📚 Todo lo que aparece en el espacio simplificado de Helm vive aquí — toca una sección para abrirla. Metas y Visión son tu rumbo; Tareas, Hábitos, Entrenamientos y Comida son el día a día.',
+    'chat.crisisNote': 'No es un servicio de crisis. Si estás en crisis o pensando en hacerte daño, contacta a los servicios de emergencia locales o una línea de crisis, y busca a alguien de confianza.',
 
     'composer.placeholder': 'Escribe un mensaje, o toca el micrófono para hablar', 'composer.transcribing': 'Transcribiendo…',
     'composer.recording': 'Grabando… toca el micrófono para detener y transcribir',

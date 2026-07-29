@@ -54,6 +54,7 @@ For the visible coach, Helm provides a reduced MCP tool set and disables the SDK
 
 ## Safety and evidence boundaries
 
+- **Crisis override:** suicidal ideation, self-harm, intent to harm someone else, or other acute distress overrides normal coaching — the coach stops challenge/accountability pressure entirely, does not attempt to diagnose or assess risk, and instead directs the user to contact local emergency services or a crisis helpline (wording is deliberately global, not tied to one country's hotline) and to reach out to a trusted person right away.
 - The operator remains responsible for decisions and for reviewing consequential changes.
 - Health and nutrition values can be estimates and should not be treated as clinical measurements.
 - Progression suggestions are derived from logged training history; they do not account for injury, medical conditions, or unrecorded fatigue.
