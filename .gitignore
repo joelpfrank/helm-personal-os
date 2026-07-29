@@ -2,6 +2,7 @@ node_modules/
 dist/
 .dashboard-token
 .mcp-http-token
+.helm-private-patterns
 .google-credentials.json
 .anthropic-key
 server/data/

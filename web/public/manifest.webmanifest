@@ -1,6 +1,6 @@
 {
-  "name": "Personal Dashboard",
-  "short_name": "Dashboard",
+  "name": "Helm Personal OS",
+  "short_name": "Helm",
   "description": "Personal tasks, habits, workouts, and calendar — one place, AI-operable",
   "id": "/",
   "start_url": "/",

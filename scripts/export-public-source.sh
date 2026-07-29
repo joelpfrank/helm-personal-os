@@ -22,6 +22,21 @@ if [[ ! -d "$SOURCE_ROOT" || -L "$SOURCE_ROOT" ]]; then
 fi
 SOURCE_ROOT="$(cd "$SOURCE_ROOT" && pwd -P)"
 
+# Optional operator-specific deny-list. Keep one extended regular expression
+# per line in a gitignored file and never commit it. The public exporter ships
+# only generic privacy checks; private names, places, organizations, and other
+# identifying terms belong in this external file instead of public source.
+PRIVATE_PATTERNS_FILE="${HELM_PRIVATE_PATTERNS_FILE:-}"
+if [[ -z "$PRIVATE_PATTERNS_FILE" && -f "$SOURCE_ROOT/.helm-private-patterns" ]]; then
+  PRIVATE_PATTERNS_FILE="$SOURCE_ROOT/.helm-private-patterns"
+fi
+if [[ -n "$PRIVATE_PATTERNS_FILE" ]]; then
+  if [[ ! -f "$PRIVATE_PATTERNS_FILE" || -L "$PRIVATE_PATTERNS_FILE" ]]; then
+    echo "operator privacy-pattern file must be a regular non-symlink file" >&2
+    exit 1
+  fi
+fi
+
 DESTINATION="$1"
 case "$DESTINATION" in
   /*) ;;
@@ -168,10 +183,11 @@ fi
 
 # These checks apply to every selected file. Forbidden private roots may exist in
 # the private repository, but the explicit allow-list never selects them.
-FORBIDDEN_PATH='(^|/)(\.git|\.hermes|node_modules|dist|backups?|logs?|vendor|generated|coverage|telegram-'""'bridge)(/|$)|(^|/)server/data(/|$)|(^|/)deploy[.]sh$|(^|/)[^/]*com[.]jo'""'el[^/]*$|(^|/)launchd/install-backup[.]sh$|(^|/)scripts/backup-db[.]sh$|[.](db|sqlite|sqlite3)(-wal|-shm)?$|[.]log$|(^|/)[.]env([.]|$)|(^|/)([.]dashboard-(token|password)|[.]mcp-http-token|[.]anthropic-key|[.]google-credentials[.]json)$|[.](pem|p12|pfx|key)$'
-# Split known personal strings so this guard can itself be exported and scanned.
+FORBIDDEN_PATH='(^|/)(\.git|\.hermes|node_modules|dist|backups?|logs?|vendor|generated|coverage)(/|$)|(^|/)server/data(/|$)|(^|/)deploy[.]sh$|(^|/)launchd/install-backup[.]sh$|(^|/)scripts/backup-db[.]sh$|[.](db|sqlite|sqlite3)(-wal|-shm)?$|[.]log$|(^|/)[.]env([.]|$)|(^|/)([.]dashboard-(token|password)|[.]mcp-http-token|[.]anthropic-key|[.]google-credentials[.]json)$|[.](pem|p12|pfx|key)$'
+# Generic checks are safe to publish. Operator-specific terms come only from
+# HELM_PRIVATE_PATTERNS_FILE or the ignored .helm-private-patterns file.
 PRIVATE_PATH='/Us'""'ers/[A-Za-z0-9._-]+/|/ho'""'me/[A-Za-z0-9._-]+/|/(opt|srv|var|tmp)/pri'""'vate(/|$)'
-PRIVATE_IDENTIFIER='(^|[^A-Za-z])jo'""'el([^A-Za-z]|$)|com[.]jo'""'el|esen'""'cia|jo'""'elpeterfrank|(^|[^A-Za-z])OF'""'M([^A-Za-z]|$)|jp'""'f@|Medel'""'l(in|ín)|Barich'""'ara|telegram(-|[[:space:]]+)'""'bridge|Tail'""'scale|tail'""'net|Fun'""'nel|Mac'""'Book|Mac[[:space:]]*Mi'""'ni|the[[:space:]]+Mi'""'ni([^A-Za-z]|$)|(^|[^A-Za-z])G'""'F([^A-Za-z]|$)|dashboard-'""'plan[.]md|TELEGRAM_(ALLOWED_)?USER_ID[[:space:]]*=[[:space:]]*['"'"'"]?[0-9]{6,}|(^|[^A-Za-z0-9._-])[A-Za-z0-9]+-[A-Za-z0-9.-]+[.]local([^A-Za-z0-9.-]|$)|(^|[^0-9])[+][1-9][0-9]{9,14}([^0-9]|$)|[A-Za-z0-9._%+-]{8,}@[A-Za-z0-9.-]+[.][A-Za-z]{2,}'
+PRIVATE_IDENTIFIER='(^|[^A-Za-z0-9._-])[A-Za-z0-9]+-[A-Za-z0-9.-]+[.]local([^A-Za-z0-9.-]|$)|(^|[^0-9])[+][1-9][0-9]{9,14}([^0-9]|$)|[A-Za-z0-9._%+-]{8,}@[A-Za-z0-9.-]+[.][A-Za-z]{2,}'
 SECRET_CONTENT="-----BEGIN ([A-Z ]+ )?PRIVATE KEY-----|s""k-ant-api03-[A-Za-z0-9_-]{16,}|redac""ted:sk[^A-Za-z0-9]*[A-Za-z0-9]{24,}|gh[pousr]_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|(api[_-]?(key|token)|access[_-]?token|auth[_-]?token|client[_-]?secret|password|secret)[[:space:]]*[:=][[:space:]]*[\"'][A-Za-z0-9_./+=:-]{16,}|(^|[^A-Za-z0-9_])(api[_-]?(key|token)|access[_-]?token|auth[_-]?token|client[_-]?secret|password|secret)[[:space:]]*=[[:space:]]*[A-Za-z0-9_+/=-]{16,}([^A-Za-z0-9_+/=-]|$)"
 
 while IFS= read -r relative; do
@@ -187,7 +203,8 @@ while IFS= read -r relative; do
   fi
   if LC_ALL=C grep -Iq . "$absolute"; then
     if LC_ALL=C grep -Enq -- "$PRIVATE_PATH" "$absolute" ||
-       LC_ALL=C grep -Einq -- "$PRIVATE_IDENTIFIER" "$absolute"; then
+       LC_ALL=C grep -Einq -- "$PRIVATE_IDENTIFIER" "$absolute" ||
+       { [[ -n "$PRIVATE_PATTERNS_FILE" ]] && LC_ALL=C grep -Enq -f "$PRIVATE_PATTERNS_FILE" -- "$absolute"; }; then
       echo "private content marker in selected file: $relative" >&2
       exit 1
     fi

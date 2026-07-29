@@ -50,11 +50,11 @@ function fixture() {
   return root;
 }
 
-function run(source, destination) {
+function run(source, destination, extraEnv = {}) {
   TEMP_PATHS.add(destination);
   return spawnSync('bash', [EXPORTER, destination], {
     cwd: ROOT,
-    env: { ...process.env, HELM_PUBLIC_SOURCE_ROOT: source },
+    env: { ...process.env, HELM_PUBLIC_SOURCE_ROOT: source, ...extraEnv },
     encoding: 'utf8',
   });
 }
@@ -75,11 +75,8 @@ function files(root) {
 
 const PUBLIC_SCAN_IGNORES = new Set(['.git', 'node_modules', 'dist', 'coverage']);
 const FORBIDDEN_PUBLIC_PATHS = [
-  new RegExp('(^|/)telegram-' + 'bridge(/|$)', 'i'),
   /(^|\/)deploy[.]sh$/i,
   /(^|\/)launchd\/install-backup[.]sh$/i,
-  new RegExp('(^|/)[^/]*com[.]jo' + 'el[^/]*$', 'i'),
-  new RegExp('(^|/)server/src/tail' + 'scale[.]js$', 'i'),
   /(^|\/)[.]dashboard-(token|password)$/i,
   /(^|\/)[.]mcp-http-token$/i,
   /(^|\/)[.]anthropic-key$/i,
@@ -89,19 +86,8 @@ const FORBIDDEN_PUBLIC_PATHS = [
   /(^|\/)server\/data(\/|$)/i,
 ];
 const FORBIDDEN_PUBLIC_CONTENT = [
-  { label: 'private owner name', pattern: new RegExp('jo' + 'el', 'i') },
-  { label: 'private company identifier', pattern: new RegExp('esen' + 'cia', 'i') },
-  { label: 'private operations identifier', pattern: new RegExp('(^|[^A-Za-z])O' + 'FM([^A-Za-z]|$)', 'i') },
-  { label: 'private email identifier', pattern: new RegExp('(jo' + 'elpeterfrank|jp' + 'f@)', 'i') },
-  { label: 'private location', pattern: new RegExp('(Medel' + 'l(?:in|ín)|Barich' + 'ara)', 'i') },
-  { label: 'private network assumption', pattern: new RegExp('tail' + 'scale', 'i') },
-  { label: 'private network assumption', pattern: new RegExp('tail' + 'net', 'i') },
-  { label: 'private network assumption', pattern: new RegExp('Fun' + 'nel', 'i') },
-  { label: 'private machine assumption', pattern: new RegExp('Mac' + 'Book|Mac\\s*Mini', 'i') },
-  { label: 'private machine assumption', pattern: new RegExp('the\\s+Mi' + 'ni\\b', 'i') },
-  { label: 'private relationship reference', pattern: new RegExp('\\bG' + "F(?:'s)?\\b", 'i') },
-  { label: 'private handoff reference', pattern: new RegExp('dashboard-' + 'plan[.]md', 'i') },
-  { label: 'private bridge identifier', pattern: new RegExp('telegram(?:-|\\s+)' + 'bridge', 'i') },
+  { label: 'email address', pattern: /[A-Za-z0-9._%+-]{8,}@[A-Za-z0-9.-]+[.][A-Za-z]{2,}/i },
+  { label: 'phone number', pattern: /(^|[^0-9])[+][1-9][0-9]{9,14}([^0-9]|$)/ },
   { label: 'macOS user path', pattern: new RegExp('/Us' + 'ers/[A-Za-z0-9._-]+(?:/|$)') },
   { label: 'Unix user path', pattern: new RegExp('/ho' + 'me/[A-Za-z0-9._-]+(?:/|$)') },
   { label: 'private hostname', pattern: new RegExp('(^|[^A-Za-z0-9.-])[A-Za-z0-9-]+(?:[.][A-Za-z0-9-]+)*[.]lo' + 'cal([^A-Za-z0-9.-]|$)', 'i') },
@@ -148,6 +134,35 @@ describe('export-public-source.sh', () => {
     assert.ok(fs.existsSync(EXPORTER), 'scripts/export-public-source.sh must exist');
   });
 
+  it('keeps operator-specific privacy patterns outside the public source tree', () => {
+    const exporter = fs.readFileSync(EXPORTER, 'utf8');
+    const testSource = fs.readFileSync(import.meta.filename, 'utf8');
+    const publicDetectors = testSource.slice(
+      testSource.indexOf('const FORBIDDEN_PUBLIC_CONTENT'),
+      testSource.indexOf('function decodeText'),
+    );
+    assert.match(exporter, /HELM_PRIVATE_PATTERNS_FILE/);
+    assert.doesNotMatch(exporter, /known personal strings/i);
+    assert.doesNotMatch(
+      publicDetectors,
+      /(owner name|company identifier|operations identifier|location|relationship reference)/i,
+    );
+  });
+
+  it('fails closed on a synthetic operator pattern supplied from an external file', () => {
+    const source = fixture();
+    const destination = `${source}-export`;
+    const patternsDir = temporaryDirectory('helm-private-patterns-');
+    const patternsFile = path.join(patternsDir, 'patterns.txt');
+    fs.writeFileSync(patternsFile, '^SYNTHETIC_PRIVATE_TENANT_[0-9]+$\n');
+    write(source, 'server/src/canary.js', 'SYNTHETIC_PRIVATE_TENANT_42\n');
+
+    const result = run(source, destination, { HELM_PRIVATE_PATTERNS_FILE: patternsFile });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stdout + result.stderr, /private content marker/i);
+    assert.equal(fs.existsSync(destination), false);
+  });
+
   it('exports only the explicit public allow-list', () => {
     const source = fixture();
     const destination = `${source}-export`;
@@ -156,7 +171,7 @@ describe('export-public-source.sh', () => {
     write(source, '.env.local', 'PRIVATE=true\n');
     write(source, 'backups/live.db', 'private backup\n');
     write(source, 'deploy.sh', 'private deployment\n');
-    write(source, 'launchd/com.' + 'jo' + 'el.private.plist', 'private launch agent\n');
+    write(source, 'launchd/com.private.operator.plist', 'private launch agent\n');
     write(source, 'launchd/install-backup.sh', 'private backup installer\n');
     write(source, 'logs/server.log', 'private log\n');
     write(source, 'node_modules/private-package/index.js', 'dependency\n');
@@ -235,7 +250,6 @@ describe('export-public-source.sh', () => {
       'server/src/state.db-wal',
       'server/src/state.db-shm',
       'server/src/private.pem',
-      'server/src/com.' + 'jo' + 'el.agent.plist',
     ];
 
     for (const relativePath of forbiddenPaths) {
@@ -249,26 +263,13 @@ describe('export-public-source.sh', () => {
     }
   });
 
-  it('fails closed on private identifiers, absolute user paths, and secret material', () => {
+  it('fails closed on generic private markers and secret material', () => {
     const canaries = [
       ['/' + 'Users/' + 'private-owner/project', /private content marker/i],
-      ['Jo' + 'el', /private content marker/i],
-      ['com.' + 'jo' + 'el.private-service', /private content marker/i],
-      ['esen' + 'ciaagency', /private content marker/i],
-      ['Esen' + 'cia Agency', /private content marker/i],
-      ['O' + 'FM operations', /private content marker/i],
-      ['jo' + 'elpeterfrank@example.com', /private content marker/i],
-      ['mac-mini.lo' + 'cal', /private content marker/i],
-      ['tail' + 'net', /private content marker/i],
-      ['Use Tail' + 'scale for remote access', /private content marker/i],
-      ['Tail' + 'scale Fun' + 'nel', /private content marker/i],
-      ['Mac' + 'Book', /private content marker/i],
-      ['Mac ' + 'Mini', /private content marker/i],
-      ['the Mi' + 'ni = the user timezone', /private content marker/i],
-      ["G" + "F's instance", /private content marker/i],
-      ['dashboard-' + 'plan.md', /private content marker/i],
-      ['Medell' + 'ín', /private content marker/i],
-      ['Barich' + 'ara', /private content marker/i],
+      ['/' + 'home/' + 'private-owner/project', /private content marker/i],
+      ['private-owner@' + 'example.invalid', /private content marker/i],
+      ['private-host.lo' + 'cal', /private content marker/i],
+      ['+' + '447700900123', /private content marker/i],
       ['«redacted:sk-…»' + 'A'.repeat(24), /secret content marker/i],
     ];
 
@@ -283,15 +284,13 @@ describe('export-public-source.sh', () => {
     }
   });
 
-  it('scans binary bytes and rejects generic credentials and personal identifiers', () => {
+  it('scans binary bytes and rejects generic credentials and private markers', () => {
     const canaries = [
       Buffer.from(`const apiKey = "${'tok_' + 'A'.repeat(32)}";\n`),
       Buffer.from('API_' + 'TOKEN=' + 'C'.repeat(32) + '\n'),
       Buffer.concat([Buffer.from('binary\0prefix\0'), Buffer.from('gh' + 'p_' + 'B'.repeat(32))]),
       Buffer.from('ownerPhone = "' + '+44' + '7700900123";\n'),
-      Buffer.from('TELEGRAM_' + 'ALLOWED_USER_ID=' + '123456789' + '\n'),
       Buffer.from('const root = "/opt/' + 'private/helm";\n'),
-      Buffer.from('const bridge = "telegram-' + 'bridge/.env";\n'),
     ];
 
     for (const [index, canary] of canaries.entries()) {
@@ -305,27 +304,6 @@ describe('export-public-source.sh', () => {
     }
   });
 
-  it('rejects quoted Telegram user identifiers with actionable diagnostics', () => {
-    const canaries = [
-      'TELEGRAM_' + 'ALLOWED_USER_ID="123456789"\n',
-      "TELEGRAM_" + "USER_ID='123456789'\n",
-    ];
-
-    for (const [index, canary] of canaries.entries()) {
-      const source = fixture();
-      const destination = `${source}-export`;
-      const relativePath = `server/src/telegram-id-${index}.js`;
-      write(source, relativePath, canary);
-
-      const result = run(source, destination);
-      const diagnostics = result.stdout + result.stderr;
-      assert.notEqual(result.status, 0, `export unexpectedly accepted quoted Telegram identifier ${index}`);
-      assert.match(diagnostics, /private content marker/i);
-      assert.match(diagnostics, /server\/src\/telegram-id-[01][.]js/);
-      assert.doesNotMatch(diagnostics, /123456789/, 'diagnostics must identify the file without printing the identifier');
-      assert.equal(fs.existsSync(destination), false, 'failure must not create a partial destination');
-    }
-  });
 
   it('rejects forbidden hidden files nested inside an allowed root', () => {
     const source = fixture();
@@ -366,11 +344,6 @@ describe('export-public-source.sh', () => {
     assert.equal(fs.existsSync(destination), false);
   });
 
-  it('does not retain a private bot-bridge credential fallback', () => {
-    const notifySource = fs.readFileSync(path.join(ROOT, 'server', 'src', 'lib', 'notify.js'), 'utf8');
-    assert.doesNotMatch(notifySource, new RegExp('telegram-' + 'bridge'));
-    assert.doesNotMatch(notifySource, /readFileSync/);
-  });
 
   it('refuses an existing non-empty destination without changing it', () => {
     const source = fixture();
@@ -384,27 +357,15 @@ describe('export-public-source.sh', () => {
     assert.deepEqual(files(destination), ['keep.txt']);
   });
 
-  it('detects every publication-private marker without fixture exemptions', () => {
+  it('detects generic publication-private markers without fixture exemptions', () => {
     const canaries = [
-      ['owner.js', 'const owner = "Jo' + 'el";\n'],
-      ['company.md', 'esen' + 'cia agency\n'],
-      ['ops.txt', 'O' + 'FM operations\n'],
-      ['email.txt', 'jo' + 'elpeterfrank@example.com\n'],
-      ['place.txt', 'Medell' + 'ín and Barich' + 'ara\n'],
-      ['network.txt', 'Use Tail' + 'scale for remote access\n'],
-      ['overlay-network.txt', 'Only expose this on the tail' + 'net\n'],
-      ['public-network.txt', 'Expose this with Fun' + 'nel\n'],
-      ['machine-role.txt', 'Open an SSH tunnel from your Mac' + 'Book to the Mac ' + 'Mini\n'],
-      ['machine-shorthand.txt', 'Times are interpreted on the Mi' + 'ni\n'],
-      ['relationship.txt', "G" + "F's instance uses another icon\n"],
-      ['handoff.txt', 'See ~/Downloads/dashboard-' + 'plan.md\n'],
+      ['email.txt', 'private-owner@' + 'example.invalid\n'],
+      ['phone.txt', '+' + '447700900123\n'],
       ['.dashboard-token', 'synthetic-token-placeholder\n'],
       ['config/.env.production', 'SAFE_PLACEHOLDER=true\n'],
       ['.hermes/plans/private.md', 'private handoff placeholder\n'],
       ['server/data/demo.txt', 'synthetic runtime data\n'],
       ['backups/demo.txt', 'synthetic backup data\n'],
-      ['bridge.txt', 'telegram-' + 'bridge\n'],
-      ['bridge-prose.txt', 'Telegram ' + 'bridge\n'],
       ['mac-path.txt', '/' + 'Users/private-owner/helm\n'],
       ['unix-path.txt', '/' + 'home/private-owner/helm\n'],
       ['hostname.txt', 'private-mini.lo' + 'cal\n'],
@@ -429,19 +390,6 @@ describe('export-public-source.sh', () => {
     assert.equal(fs.existsSync(credentialPath), false, 'node:test must not create a credential in the source tree');
   });
 
-  it('does not retain private deployment-topology assumptions in product source', () => {
-    const sources = [
-      ['server/src/routes/auth.js', /Cloudflare tunnel every/i],
-      ['server/src/lib/channel-telegram.js', new RegExp('Telegram ' + 'bridge', 'i')],
-      ['web/src/components/chat/ChatComposer.jsx', new RegExp('Telegram ' + 'bridge', 'i')],
-      ['web/src/views/CalendarView.jsx', /SSH-tunnel flow/i],
-    ];
-
-    for (const [relativePath, forbidden] of sources) {
-      const source = fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
-      assert.doesNotMatch(source, forbidden, `${relativePath} retains a private deployment assumption`);
-    }
-  });
 
   it('scans every public text file in the working tree for private markers and machine paths', () => {
     assert.deepEqual(publicationSafetyFindings(ROOT), []);

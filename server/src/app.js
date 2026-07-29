@@ -99,7 +99,7 @@ export function createApp() {
     app.get('/manifest.webmanifest', (_req, res) => {
       const pink = FLAVOR === 'girly';
       res.json({
-        name: 'Helm',
+        name: 'Helm Personal OS',
         short_name: 'Helm',
         description: 'Your vision, goals, habits, and days in one place — AI-operable.',
         id: '/',

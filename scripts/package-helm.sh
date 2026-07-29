@@ -31,9 +31,10 @@ SHA="$ZIP.sha256"
 # but a committed template (.env.example) is not.
 FORBIDDEN='(^|/)(\.dashboard-token|\.dashboard-password|\.mcp-http-token|\.anthropic-key|\.google-credentials\.json|\.env(\.local|\.production)?)$|(^|/)server/data/|\.log$'
 
-# Portable allowlist. Old deployment files, project docs/tests, and sender-only
-# integrations are omitted rather than trying to maintain an exclusion list.
-INCLUDE='^(package(-lock)?\.json|install-helm\.sh|HERMES-INSTALL\.md|server/|web/|mcp/|launchd/com\.helm\.app\.plist\.template|launchd/helm-launch\.sh)'
+# Portable allowlist. License/provider notices travel with the software. Old
+# deployment files, development docs/tests, and sender-only integrations are
+# omitted rather than trying to maintain an exclusion list.
+INCLUDE='^(LICENSE|PRIVACY\.md|THIRD_PARTY_LICENSES\.md|package(-lock)?\.json|install-helm\.sh|HERMES-INSTALL\.md|server/|web/|mcp/|launchd/com\.helm\.app\.plist\.template|launchd/helm-launch\.sh)'
 EXCLUDE='^mcp/README\.md$'
 
 STAGE="$(mktemp -d)"

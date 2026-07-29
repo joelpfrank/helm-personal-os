@@ -47,7 +47,7 @@ export const STRINGS = {
     'intro.s5.title': 'Let’s find your north star', 'intro.s5.body': 'First, a short chat to map where you’re headed — just a few minutes. Then Helm builds everything around it.',
 
     'login.brand': 'Helm', 'login.setupWelcome': 'Welcome to Helm', 'login.setupTitle': 'Set a password',
-    'login.setupSub': 'First time here — pick a password to protect your dashboard.',
+    'login.setupSub': 'First time here — pick a password to protect your Helm workspace.',
     'login.loginSub': 'Enter your password to continue.',
     'login.password': 'Password', 'login.confirm': 'Confirm password',
     'login.create': 'Create password', 'login.unlock': 'Unlock', 'login.wait': 'Please wait…', 'login.loading': 'Loading…',

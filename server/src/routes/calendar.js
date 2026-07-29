@@ -385,14 +385,14 @@ function parseHHMM(s) {
 }
 
 function authPage(msg) {
-  return `<!doctype html><html><head><meta charset="utf-8"><title>Dashboard Calendar Auth</title>
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Helm Calendar Auth</title>
 <style>
   body { font-family: -apple-system, system-ui, sans-serif; background: #14161b; color: #e6e8ee; padding: 40px; line-height: 1.5; }
   .box { max-width: 600px; background: #1c1f26; border: 1px solid #2a2f3a; border-radius: 6px; padding: 24px; }
   code { background: #232733; padding: 2px 6px; border-radius: 3px; }
 </style></head><body>
   <div class="box">
-    <h2>Dashboard ↔ Google Calendar</h2>
+    <h2>Helm ↔ Google Calendar</h2>
     <p>${msg}</p>
   </div>
 </body></html>`;

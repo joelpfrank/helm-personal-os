@@ -19,7 +19,7 @@ const hosts = [HOST];
 const servers = hosts.map((host) => {
   const server = http.createServer(app);
   server.listen(PORT, host, () => {
-    console.log(`[startup] dashboard listening on http://${host}:${PORT}`);
+    console.log(`[startup] Helm Personal OS listening on http://${host}:${PORT}`);
   });
   server.on('error', (err) => {
     console.error(`[startup] failed to bind ${host}:${PORT} —`, err.message);

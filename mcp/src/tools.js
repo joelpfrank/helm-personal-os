@@ -1,4 +1,4 @@
-// All 19 dashboard MCP tools registered against an McpServer instance.
+// All Helm MCP tools registered against an McpServer instance.
 // Shared between the stdio entry (index.js) and the HTTP entry (http.js)
 // so we have one definition of every tool.
 
@@ -1127,7 +1127,7 @@ export function registerTools(server, { simplified = false } = {}) {
 
   server.registerTool('get_today_schedule',
     {
-      description: 'A unified "today" view across the dashboard: calendar events scheduled today, kanban cards with a due date of today (or overdue), and the day\'s scheduled habits with completion status. Use this when the user asks "what does my day look like?" or "what should I focus on today?".',
+      description: 'A unified "today" view across Helm: calendar events scheduled today, kanban cards with a due date of today (or overdue), and the day\'s scheduled habits with completion status. Use this when the user asks "what does my day look like?" or "what should I focus on today?".',
       inputSchema: {},
     },
     async () => {
@@ -1175,7 +1175,7 @@ export function registerTools(server, { simplified = false } = {}) {
 
   server.registerTool('list_memories',
     {
-      description: 'List all long-term memories the assistant has stored about the user. (Note: in the in-dashboard chat these are already loaded into your context — calling this is only necessary if you suspect the bank changed externally.)',
+      description: 'List all long-term memories the assistant has stored about the user. (Note: in Helm chat these are already loaded into your context — calling this is only necessary if you suspect the bank changed externally.)',
       inputSchema: {},
     },
     async () => ok(await apiGet('/memories')),
@@ -1405,7 +1405,7 @@ export function registerCoachTools(server) {
   // ---- Goals ----
   server.registerTool('list_goals',
     {
-      description: 'List goals, optionally filtered by horizon (vision|year|quarter|month|week) and/or status (active|done|dropped|paused). Returns each goal with its obstacles and links to dashboard primitives.',
+      description: 'List goals, optionally filtered by horizon (vision|year|quarter|month|week) and/or status (active|done|dropped|paused). Returns each goal with its obstacles and links to Helm primitives.',
       inputSchema: {
         horizon: z.enum(['vision', 'year', 'quarter', 'month', 'week']).optional(),
         status: z.enum(['active', 'done', 'dropped', 'paused']).optional(),
@@ -1500,7 +1500,7 @@ export function registerCoachTools(server) {
   // ---- Goal ↔ primitive links ----
   server.registerTool('link_goal',
     {
-      description: 'Link a goal to a downstream dashboard primitive so the rest of the app becomes goal-aware. kind = habit|card|routine|event|food_target|workout|module|module_item; target_id = the id in that table. Use this aggressively — every habit, routine, key task, and relevant custom-module item should be linked to the goal it serves.',
+      description: 'Link a goal to a downstream Helm primitive so the rest of the app becomes goal-aware. kind = habit|card|routine|event|food_target|workout|module|module_item; target_id = the id in that table. Use this aggressively — every habit, routine, key task, and relevant custom-module item should be linked to the goal it serves.',
       inputSchema: {
         goal_id: z.number().int(),
         kind: z.enum(['habit', 'card', 'routine', 'event', 'food_target', 'workout', 'module', 'module_item']),

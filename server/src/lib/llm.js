@@ -1,7 +1,7 @@
 // LLM backend adapter. Routes streaming chat requests to either:
 //   - 'sdk' (default): the Claude Agent SDK, using Claude Code's local
 //     subscription credentials; no API key needed. Plays an MCP server
-//     in-process so all 95 dashboard tools work natively.
+//     in-process so all 95 Helm tools work natively.
 //   - 'api': the original Anthropic Messages API client, kept for when
 //     we commercialise (per-user API keys) or for fallback testing.
 //
@@ -23,7 +23,7 @@ import {
 
 export const BACKEND = process.env.LLM_BACKEND === 'api' ? 'api' : 'sdk';
 
-// Built-in Claude Code tools we don't want anywhere near the dashboard
+// Built-in Claude Code tools we don't want anywhere near the Helm
 // chat. The SDK ships these by default; we explicitly disallow them so
 // Claude can't, e.g., shell out from the host running Helm.
 // WebSearch + WebFetch are intentionally LEFT ENABLED so the coach/agents can
@@ -40,7 +40,7 @@ const _sdkMcpInstances = new Map();
 function getSdkMcpInstance({ simplified = false } = {}) {
   const key = simplified ? 'simplified' : 'full';
   if (_sdkMcpInstances.has(key)) return _sdkMcpInstances.get(key);
-  const s = new McpServer({ name: `dashboard-${key}`, version: '0.1.0' });
+  const s = new McpServer({ name: `helm-${key}`, version: '0.1.0' });
   registerTools(simplified ? simplifiedToolServer(s) : s, { simplified });
   _sdkMcpInstances.set(key, s);
   return s;
@@ -104,9 +104,9 @@ async function *sdkStream({ system, messages, model, simplifiedTools = false }) 
   delete sdkEnv.ANTHROPIC_API_KEY;
 
   const mcpServers = {
-    dashboard: {
+    helm: {
       type: 'sdk',
-      name: 'dashboard',
+      name: 'helm',
       instance: getSdkMcpInstance({ simplified: simplifiedTools }),
     },
   };
@@ -203,7 +203,7 @@ export async function completeText({ system, prompt, model = 'claude-haiku-4-5-2
       permissionMode: 'bypassPermissions',
       disallowedTools: DISALLOWED_BUILT_INS,
       env: sdkEnv,
-      // No mcpServers → no dashboard tools → pure text completion.
+      // No mcpServers → no Helm tools → pure text completion.
     };
     if (model) opts.model = model;
     let text = '';

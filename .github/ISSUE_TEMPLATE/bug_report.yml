@@ -1,0 +1,67 @@
+name: Bug report
+description: Report a reproducible problem using synthetic or fully redacted data
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Helm Personal OS. Do not include real personal data, credentials, tokens, database files, private URLs, or unredacted logs. Report vulnerabilities privately as described in SECURITY.md.
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy and security check
+      options:
+        - label: I removed personal data, credentials, tokens, private URLs, and identifying screenshots or logs.
+          required: true
+        - label: This is not a security vulnerability that should be reported privately.
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: v0.1.0 or commit identifier
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Tasks
+        - Habits
+        - Food and health tracking
+        - Workouts
+        - Coach / AI
+        - MCP / integrations
+        - Install / packaging
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Use synthetic data only.
+      placeholder: "1. Start from…\n2. Select…\n3. Observe…"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: macOS version, Node version, browser
+    validations:
+      required: true

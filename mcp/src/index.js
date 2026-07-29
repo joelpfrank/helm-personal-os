@@ -7,16 +7,16 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 
 import { registerTools } from './tools.js';
 
-const server = new McpServer({ name: 'dashboard-mcp', version: '0.1.0' });
+const server = new McpServer({ name: 'helm-personal-os-mcp', version: '0.1.0' });
 registerTools(server);
 
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('[dashboard-mcp] connected');
+  console.error('[helm-personal-os-mcp] connected');
 }
 
 main().catch((err) => {
-  console.error('[dashboard-mcp] fatal:', err);
+  console.error('[helm-personal-os-mcp] fatal:', err);
   process.exit(1);
 });

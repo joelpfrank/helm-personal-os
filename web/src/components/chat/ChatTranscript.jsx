@@ -14,7 +14,7 @@ export default function ChatTranscript({ messages, pendingAssistant, streaming }
     <div className="chat-transcript" ref={scrollRef}>
       {messages.length === 0 && !pendingAssistant && (
         <div className="chat-empty muted center-pad">
-          Ask anything about your dashboard. Examples:
+          Ask anything about your Helm workspace. Examples:
           <ul style={{ marginTop: 10, textAlign: 'left', display: 'inline-block' }}>
             <li>"Review my overdue tasks and help me choose one priority."</li>
             <li>"Add a task to call the dentist."</li>

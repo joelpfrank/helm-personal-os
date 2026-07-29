@@ -1,14 +1,19 @@
 {
-  "name": "dashboard",
+  "name": "helm-personal-os",
   "private": true,
   "version": "0.1.0",
-  "description": "Personal Trello-style dashboard with AI-operable docs and MCP",
+  "description": "Local-first personal operating system with goal-aligned tasks, habits, health tracking, check-ins, and evidence-grounded AI coaching.",
+  "license": "MIT",
   "workspaces": ["server", "web", "mcp"],
   "scripts": {
-    "dev:server": "npm run dev -w dashboard-server",
-    "dev:web": "npm run dev -w dashboard-web",
-    "build:web": "npm run build -w dashboard-web",
-    "start": "node server/src/index.js"
+    "dev:server": "npm run dev -w helm-personal-os-server",
+    "dev:web": "npm run dev -w helm-personal-os-web",
+    "build:web": "npm run build -w helm-personal-os-web",
+    "build": "npm run build:web",
+    "start": "node server/src/index.js",
+    "test": "node --test test/*.test.mjs",
+    "check": "npm run test && npm run build",
+    "package:portable": "bash scripts/package-helm.sh"
   },
   "engines": {
     "node": ">=20"

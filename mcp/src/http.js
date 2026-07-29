@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 // HTTP MCP entry point. Speaks the Streamable HTTP transport at /mcp so
 // Anthropic's servers (calling on behalf of claude.ai web, iOS, iPadOS,
-// or Claude Desktop) can use the dashboard tools.
+// or Claude Desktop) can use the Helm tools.
 //
 // Bearer-token auth on /mcp; the token lives in `.mcp-http-token` at the
-// project root (generated on first start). Keep this separate from the
-// dashboard's own `.dashboard-token` so a leak here doesn't widen blast.
+// project root (generated on first start). Keep this separate from
+// Helm's own `.dashboard-token` so a leak here doesn't widen blast.
 //
 // Listens on 127.0.0.1:8788 by default. Operators who deliberately expose
 // it through a secure reverse proxy remain responsible for access controls.
@@ -33,9 +33,9 @@ function resolveToken() {
   const generated = crypto.randomBytes(32).toString('hex');
   fs.writeFileSync(TOKEN_PATH, generated + '\n', { mode: 0o600 });
   try { fs.chmodSync(TOKEN_PATH, 0o600); } catch {}
-  console.error('[dashboard-mcp-http] generated new token at', TOKEN_PATH);
-  console.error('[dashboard-mcp-http] paste this into Claude → Settings → Connectors:');
-  console.error('[dashboard-mcp-http]', generated);
+  console.error('[helm-personal-os-mcp-http] generated new token at', TOKEN_PATH);
+  console.error('[helm-personal-os-mcp-http] paste this into Claude → Settings → Connectors:');
+  console.error('[helm-personal-os-mcp-http]', generated);
   return generated;
 }
 
@@ -79,7 +79,7 @@ app.use((req, res, next) => {
 
 // Health (no auth) — useful for local or reverse-proxy monitoring.
 app.get('/health', (_req, res) => {
-  res.json({ ok: true, service: 'dashboard-mcp-http', version: '0.1.0' });
+  res.json({ ok: true, service: 'helm-personal-os-mcp-http', version: '0.1.0' });
 });
 
 // Two authentication modes:
@@ -118,7 +118,7 @@ async function handleMcp(req, res) {
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined, // stateless: 1 transport per request
     });
-    const server = new McpServer({ name: 'dashboard-mcp', version: '0.1.0' });
+    const server = new McpServer({ name: 'helm-personal-os-mcp', version: '0.1.0' });
     registerTools(server);
 
     res.on('close', () => {
@@ -128,7 +128,7 @@ async function handleMcp(req, res) {
     await server.connect(transport);
     await transport.handleRequest(req, res, req.body);
   } catch (err) {
-    console.error('[dashboard-mcp-http] error handling request:', err);
+    console.error('[helm-personal-os-mcp-http] error handling request:', err);
     if (!res.headersSent) {
       res.status(500).json({
         jsonrpc: '2.0',
@@ -146,11 +146,11 @@ app.get('/mcp/:token', handleMcp);
 app.delete('/mcp/:token', handleMcp);
 
 const server = app.listen(PORT, HOST, () => {
-  console.error(`[dashboard-mcp-http] listening on http://${HOST}:${PORT}/mcp`);
+  console.error(`[helm-personal-os-mcp-http] listening on http://${HOST}:${PORT}/mcp`);
 });
 
 function shutdown(signal) {
-  console.error(`[dashboard-mcp-http] received ${signal}, closing`);
+  console.error(`[helm-personal-os-mcp-http] received ${signal}, closing`);
   server.close(() => process.exit(0));
   setTimeout(() => process.exit(1), 5000).unref();
 }

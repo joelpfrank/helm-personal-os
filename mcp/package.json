@@ -1,12 +1,13 @@
 {
-  "name": "dashboard-mcp",
+  "name": "helm-personal-os-mcp",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "main": "src/index.js",
   "bin": {
-    "dashboard-mcp": "src/index.js",
-    "dashboard-mcp-http": "src/http.js"
+    "helm-personal-os-mcp": "src/index.js",
+    "helm-personal-os-mcp-http": "src/http.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
