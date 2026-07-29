@@ -122,8 +122,7 @@ router.get('/', (req, res, next) => {
 router.get('/active', (_req, res, next) => {
   try {
     const w = sql.active.get();
-    if (!w) throw errors.notFound('no active workout');
-    res.json(fullWorkout(w));
+    res.json(w ? fullWorkout(w) : null);
   } catch (e) { next(e); }
 });
 

@@ -28,6 +28,7 @@ describe('server-backed workout rest timer', () => {
     const dbMod = await import('../server/src/db.js');
     db = dbMod.db;
     const { getToken } = await import('../server/src/auth.js');
+    process.env.DASHBOARD_TOKEN = getToken();
     const { createApp } = await import('../server/src/app.js');
     server = await new Promise((resolve) => {
       const value = createApp().listen(port, '127.0.0.1', () => resolve(value));
@@ -41,6 +42,7 @@ describe('server-backed workout rest timer', () => {
     try { db?.close(); } catch {}
     if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true });
     delete process.env.HELM_DISABLE_TELEGRAM_NOTIFICATIONS;
+    delete process.env.DASHBOARD_TOKEN;
   });
 
   async function call(method, url, body) {
@@ -63,6 +65,18 @@ describe('server-backed workout rest timer', () => {
       'id', 'workout_id', 'duration_seconds', 'repeat_enabled',
       'notifications_enabled', 'next_fire_at', 'started_at',
     ]);
+  });
+
+  it('returns a successful empty active-workout response for a normal blank workspace', async () => {
+    const active = await call('GET', '/workouts/active');
+    assert.equal(active.status, 200);
+    assert.equal(active.body, null);
+
+    const { resolveActiveWorkout } = await import('../mcp/src/resolve.js');
+    await assert.rejects(
+      resolveActiveWorkout(),
+      /no active workout — call start_workout first/,
+    );
   });
 
   it('starts, reads back, and stops a repeating timer tied to the active workout', async () => {
@@ -88,7 +102,8 @@ describe('server-backed workout rest timer', () => {
     assert.equal(readback.body.duration_seconds, 90);
 
     const stopped = await call('DELETE', '/workouts/rest-timer');
-    assert.equal(stopped.status, 204);
+    assert.equal(stopped.status, 200);
+    assert.deepEqual(stopped.body, { running: false });
     const empty = await call('GET', '/workouts/rest-timer');
     assert.deepEqual(empty.body.running, false);
   });

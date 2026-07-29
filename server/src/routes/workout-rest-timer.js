@@ -42,7 +42,7 @@ router.post('/', (req, res, next) => {
 
 router.delete('/', (_req, res) => {
   stopWorkoutRestTimer();
-  res.status(204).end();
+  res.json({ running: false });
 });
 
 export default router;

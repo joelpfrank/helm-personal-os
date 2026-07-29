@@ -211,6 +211,7 @@ h1, h2, .modal-title, .today-header h1, .login-title {
 
 /* chat view */
 .chat-view {
+  position: relative;
   display: grid;
   grid-template-columns: 260px 1fr;
   height: 100%;

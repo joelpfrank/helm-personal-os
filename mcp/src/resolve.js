@@ -104,7 +104,9 @@ export async function resolveRoutine({ routine_id, routine_name }) {
 
 export async function resolveActiveWorkout() {
   try {
-    return await apiGet('/workouts/active');
+    const workout = await apiGet('/workouts/active');
+    if (!workout) throw notFoundW('no active workout — call start_workout first');
+    return workout;
   } catch (err) {
     if (err.code === 'not_found') {
       throw notFoundW('no active workout — call start_workout first');

@@ -866,14 +866,7 @@ export function registerTools(server, { simplified = false } = {}) {
       description: 'Return the current in-progress workout (with exercises and sets), or null if there isn\'t one.',
       inputSchema: {},
     },
-    async () => {
-      try {
-        return ok(await apiGet('/workouts/active'));
-      } catch (err) {
-        if (err.code === 'not_found') return ok(null);
-        throw err;
-      }
-    },
+    async () => ok(await apiGet('/workouts/active')),
   );
 
   server.registerTool('end_workout',

@@ -319,4 +319,16 @@ describe('Mobile nav layout', () => {
     assert.match(css, /\.coach-tabs\s*\{[^}]*overflow-x:\s*auto/s,
       'coach-tabs needs its own inner horizontal scroller so it never forces document-level horizontal overflow');
   });
+
+  it('.chat-view establishes a positioning context so the mobile sidebar overlay stays inside the chat pane', () => {
+    // At <=640px, `.chat-view:not(.sidebar-collapsed) .conv-list` is
+    // `position: absolute; inset: 0`. Without `.chat-view` itself set to
+    // `position: relative`, that overlay positions against the viewport
+    // instead of the chat pane — covering the topbar/primary nav and
+    // trapping the user with no way back to Tasks/Food/Habits/Workouts.
+    const css = read('web/src/styles.css');
+    const chatViewBlock = css.match(/\.chat-view\s*\{[^}]*\}/s)?.[0] || '';
+    assert.match(chatViewBlock, /position:\s*relative/,
+      '.chat-view must set position: relative to contain the mobile .conv-list overlay');
+  });
 });
