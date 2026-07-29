@@ -1,0 +1,87 @@
+# Helm Personal OS
+
+Helm is a local-first personal operating system for connecting long-term direction to everyday action. It brings goals, kanban tasks, habits, food, workouts, check-ins, and an evidence-grounded AI coach into one self-hosted web app. Many of the same records are available through Model Context Protocol (MCP) tools, so a compatible assistant can read and update the system with explicit tool calls.
+
+> **Project stage:** early, macOS-first, and designed for one operator. Helm is not a hosted service, team workspace, medical device, or substitute for professional advice.
+
+## What is included
+
+- **Goals and coaching:** vision, nested goals, success criteria, obstacles, goal links, coaching preferences, and morning/midday/evening/weekly review records.
+- **Planning:** boards, columns, cards, tags, due dates, and a unified today view.
+- **Habits and health logs:** scheduled habits with explicit achieved/not-achieved outcomes, meals and macro estimates, body weight, activities, workout routines, sets, rest timers, history, and progression suggestions.
+- **Calendar:** a local event view with optional Google Calendar synchronization.
+- **Extensibility:** retained custom-module and saved-agent APIs, web/CLI chat surfaces, and stdio or loopback HTTP MCP transports. The simplified web navigation currently focuses on Tasks, Food, Habits, Workouts, and Coach rather than exposing every retained subsystem.
+- **Local persistence:** SQLite data on the operator's machine, with bearer-token API authentication and a first-run password for the browser UI.
+
+The non-AI records and workflows do not require an AI account. AI-backed requests are not local-only: they send selected prompt context to the configured provider. See [Privacy](PRIVACY.md).
+
+## Quick start for development
+
+Requirements: macOS, Node.js 20+, npm, and Git.
+
+```sh
+npm ci
+npm run build
+npm start
+```
+
+Open `http://127.0.0.1:8787` and create the first local password. The server binds to `127.0.0.1` by default. Application data is created under `server/data/`; local credentials are created outside the database and are excluded from source control.
+
+For separate watch processes during development:
+
+```sh
+npm run dev:server
+npm run dev:web
+```
+
+The Vite development server proxies API requests to `http://127.0.0.1:8787` by default.
+
+## macOS installation
+
+The portable installer stages dependencies and the frontend before replacing an installation, can register a per-user LaunchAgent, and refuses to overwrite an existing installation unless `--upgrade` is supplied.
+
+```sh
+./install-helm.sh --dry-run
+./install-helm.sh
+```
+
+The default destination is `~/Helm`, and the default service URL is `http://127.0.0.1:8787`. Read [HERMES-INSTALL.md](HERMES-INSTALL.md) before using an archive or upgrade.
+
+## AI backends: Claude Code versus API
+
+Helm's default in-app AI backend uses the Claude Agent SDK with credentials from a local Claude Code login. This can use an eligible Claude subscription; it is not the same as making requests with an Anthropic API key. Helm disables the SDK's local file and shell tools for in-app chat and supplies Helm operations through an in-process MCP server.
+
+Set `LLM_BACKEND=api` to select the alternative Anthropic Messages API path. That path requires `ANTHROPIC_API_KEY` and may incur API charges under the operator's Anthropic account. An API key is also used for optional short API-only operations such as automatic conversation titles. In either mode, request content is processed outside the host by Anthropic.
+
+## Documentation
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Coaching design](docs/COACHING.md)
+- [Development guide](docs/DEVELOPMENT.md)
+- [MCP integration](docs/MCP.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Privacy](PRIVACY.md)
+- [Security policy](SECURITY.md)
+- [Contributing](CONTRIBUTING.md)
+- [Third-party licenses](THIRD_PARTY_LICENSES.md)
+
+## Verification
+
+```sh
+npm run check
+npm run package:portable
+```
+
+`npm run check` runs the Node test suite and production frontend build. The portable-package command creates a blank-data publication archive and runs its export checks; it does not package an operator's database or credentials.
+
+## Known limits
+
+- macOS is the supported installation target today; other operating systems are not claimed to work.
+- The current security and data model assumes a single trusted operator on a trusted host.
+- Loopback binding reduces accidental network exposure but does not protect against another process or user with sufficient host access.
+- SQLite files, local logs, exports, and backups are not application-level encrypted by Helm.
+- Optional calendar, AI, MCP, notification, and messaging integrations create additional provider and credential boundaries.
+
+## License
+
+Helm-authored source is available under the [MIT License](LICENSE). Dependencies retain their own licenses. The Anthropic Claude Agent SDK is separately licensed proprietary software and is not covered by Helm's MIT license; see [Third-party licenses](THIRD_PARTY_LICENSES.md).
