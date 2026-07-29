@@ -43,6 +43,7 @@ describe('public package metadata', () => {
     assert.ok(pkg.scripts?.build, 'scripts.build must be defined');
     assert.ok(pkg.scripts?.check, 'scripts.check must be defined');
     assert.equal(pkg.scripts?.['package:portable'], 'bash scripts/package-helm.sh');
+    assert.equal(pkg.scripts?.['demo:create'], 'node scripts/create-demo-workspace.mjs');
   });
 
   it('does not run the public-export safety test twice inside check', () => {
@@ -133,6 +134,12 @@ describe('lockfile and public governance metadata', () => {
     assert.match(packaging, /LICENSE/);
     assert.match(packaging, /THIRD_PARTY_LICENSES\\?\.md/);
     assert.match(packaging, /PRIVACY\\?\.md/);
+  });
+
+  it('ships the demo generator without allowing the entire scripts directory', () => {
+    const packaging = readText('scripts/package-helm.sh');
+    assert.match(packaging, /scripts\/create-demo-workspace\\?\.mjs/);
+    assert.doesNotMatch(packaging, /\|scripts\/\|/);
   });
 });
 

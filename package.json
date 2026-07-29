@@ -13,7 +13,8 @@
     "start": "node server/src/index.js",
     "test": "node --test test/*.test.mjs",
     "check": "npm run test && npm run build",
-    "package:portable": "bash scripts/package-helm.sh"
+    "package:portable": "bash scripts/package-helm.sh",
+    "demo:create": "node scripts/create-demo-workspace.mjs"
   },
   "engines": {
     "node": ">=20"
