@@ -32,6 +32,17 @@ jobs:
       # The canonical gate: tests, web build, public-safety scan, independent
       # secret scan, and a production npm audit — same command as local dev.
       - run: npm run check
+      - name: Build portable archive
+        run: npm run package:portable
+      - name: Upload portable archive and checksum
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: Helm-portable
+          path: |
+            dist/Helm-portable.zip
+            dist/Helm-portable.zip.sha256
+          if-no-files-found: error
+          retention-days: 3
 
   gitleaks:
     name: Full-history secret scan (gitleaks)

@@ -103,9 +103,24 @@ describe('CI workflow (.github/workflows/ci.yml)', () => {
     assert.doesNotMatch(raw, /api[_-]?key/i);
   });
 
-  it('uploads no artifacts (nothing to gate behind v* tags)', () => {
-    assert.ok(!allUses(wf).some((u) => u.includes('upload-artifact')),
-      'CI must not upload artifacts; releases are cut manually from the gate output');
+  it('packages and uploads the portable archive plus checksum for private rehearsal', () => {
+    const checkJob = wf.jobs?.check;
+    assert.ok(checkJob, 'the canonical check job must exist');
+    const steps = checkJob.steps ?? [];
+    const checkIndex = steps.findIndex((s) => s.run === 'npm run check');
+    const packageIndex = steps.findIndex((s) => s.run === 'npm run package:portable');
+    const uploadIndex = steps.findIndex((s) => s.uses?.startsWith('actions/upload-artifact@'));
+    assert.ok(checkIndex >= 0, 'the canonical gate must run in the artifact-producing job');
+    assert.ok(packageIndex > checkIndex, 'CI must build the portable archive after the canonical gate');
+    assert.ok(uploadIndex > packageIndex, 'CI must upload only after packaging succeeds');
+
+    const upload = steps[uploadIndex];
+    assert.equal(upload.with?.name, 'Helm-portable');
+    assert.equal(upload.with?.path,
+      'dist/Helm-portable.zip\ndist/Helm-portable.zip.sha256\n');
+    assert.equal(upload.with?.['if-no-files-found'], 'error');
+    assert.equal(upload.with?.['retention-days'], 3,
+      'private-rehearsal artifacts must have short retention');
   });
 });
 
