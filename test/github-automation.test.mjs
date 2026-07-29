@@ -62,9 +62,15 @@ describe('CI workflow (.github/workflows/ci.yml)', () => {
     const setupNode = allSteps(wf).find((s) => s.uses?.startsWith('actions/setup-node@'));
     assert.ok(setupNode, 'must use actions/setup-node');
     assert.equal(String(setupNode.with?.['node-version']), '20');
+    const steps = wf.jobs?.check?.steps ?? [];
     const runs = allRunScripts(wf);
     assert.ok(runs.some((r) => /(^|\s)npm ci(\s|$)/.test(r)), 'must install with npm ci');
     assert.ok(runs.some((r) => /(^|\s)npm run check(\s|$)/.test(r)), 'must run the canonical npm run check');
+    const ffmpegIndex = steps.findIndex((s) => /apt-get install[^\n]*ffmpeg/.test(s.run ?? ''));
+    const checkIndex = steps.findIndex((s) => s.run === 'npm run check');
+    assert.ok(ffmpegIndex >= 0, 'CI must install ffprobe through the ffmpeg package');
+    assert.ok(checkIndex > ffmpegIndex,
+      'ffprobe must be available before the canonical demo-asset gate runs');
   });
 
   it('runs gitleaks over the full git history with a checksum-verified pinned binary', () => {
@@ -153,8 +159,16 @@ describe('CodeQL workflow (.github/workflows/codeql.yml)', () => {
     assert.equal(init.with?.languages, 'javascript-typescript');
     assert.equal(init.with?.['build-mode'], 'none',
       'build must be explicit "none" — never autobuild through npm scripts');
-    assert.ok(allSteps(wf).some((s) => s.uses?.startsWith('github/codeql-action/analyze@')),
-      'must run codeql-action/analyze');
+    const visibility = allSteps(wf).find((s) => s.id === 'visibility');
+    assert.ok(visibility, 'must resolve repository visibility for every event type, including schedule');
+    assert.equal(visibility.env?.GH_TOKEN, '${{ github.token }}');
+    assert.match(visibility.run ?? '', /gh api repos\/"\$GITHUB_REPOSITORY"/,
+      'visibility must come from the repository API, not an event payload that is absent on schedule');
+    const analyze = allSteps(wf).find((s) => s.uses?.startsWith('github/codeql-action/analyze@'));
+    assert.ok(analyze, 'must run codeql-action/analyze');
+    assert.equal(analyze.with?.upload,
+      "${{ steps.visibility.outputs.private == 'false' && 'always' || 'never' }}",
+      'private rehearsal must never upload; public runs must always upload for every trigger');
   });
 
   it('pins every action to an immutable full commit SHA with a version comment', () => {

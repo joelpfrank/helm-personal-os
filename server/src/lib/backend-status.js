@@ -37,7 +37,7 @@ export function resolveBackend(env = process.env) {
 // a minimal PATH — same pattern as WHISPER_CLI in routes/chat.js).
 export const SDK_AUTH_PROBE = {
   args: ['auth', 'status'],
-  timeoutMs: 3000,
+  timeoutMs: 10_000,
 };
 
 function claudeBin() {

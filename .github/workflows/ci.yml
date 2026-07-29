@@ -28,6 +28,10 @@ jobs:
         with:
           node-version: '20'
           cache: npm
+      - name: Install ffprobe for committed demo validation
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y ffmpeg
       - run: npm ci
       # The canonical gate: tests, web build, public-safety scan, independent
       # secret scan, and a production npm audit — same command as local dev.

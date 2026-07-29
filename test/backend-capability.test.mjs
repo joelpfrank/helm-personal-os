@@ -169,8 +169,8 @@ describe('createBackendStatus — sdk backend', () => {
 
   it('uses a status probe command, never an inference call', () => {
     assert.deepEqual(SDK_AUTH_PROBE.args, ['auth', 'status']);
-    assert.ok(SDK_AUTH_PROBE.timeoutMs > 0 && SDK_AUTH_PROBE.timeoutMs <= 10_000,
-      'probe must carry a bounded timeout');
+    assert.ok(SDK_AUTH_PROBE.timeoutMs >= 5_000 && SDK_AUTH_PROBE.timeoutMs <= 10_000,
+      'probe must tolerate loaded CI while remaining bounded');
   });
 });
 
