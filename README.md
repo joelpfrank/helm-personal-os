@@ -15,6 +15,21 @@ Helm is a local-first personal operating system for connecting long-term directi
 
 The non-AI records and workflows do not require an AI account. AI-backed requests are not local-only: they send selected prompt context to the configured provider. See [Privacy](PRIVACY.md).
 
+## Screenshots and demo
+
+All screens below show the fictional "Port Aurora" workspace produced by [`scripts/create-demo-workspace.mjs`](scripts/create-demo-workspace.mjs) — synthetic demo data only, never a real operator's records.
+
+| | |
+| --- | --- |
+| ![Today view: a daily command meeting, closeout, and vision review, with active goals, today's habits, and recent reflections](docs/assets/helm-today.png) | ![Coach vision tab: a north-star narrative, an identity statement, and a values list](docs/assets/helm-coach.png) |
+| Today — the daily command meeting, closeout, and vision review, plus active goals, today's habits, and recent reflections. | Coach — the vision layer: north star, identity statement, and values that anchor the coach's context. |
+| ![Tasks board with Next, In Progress, and Done columns holding fictional studio-project cards](docs/assets/helm-tasks.png) | ![Side-by-side composite: a habits list with logged minutes and pages, and a completed workout history card](docs/assets/helm-habits-workouts.png) |
+| Tasks — simple kanban boards for work and life. | Habits and Workouts — a clearly labelled two-panel composite of two real screens: scheduled habits with logged quantities and completed workout history. |
+
+**Demo video:** [`docs/assets/helm-demo.mp4`](docs/assets/helm-demo.mp4) (85 seconds, 1280x720, H.264, captioned, deliberately silent — GitHub's Markdown viewer does not play back repository-hosted video, so this is a direct link rather than an embed). It walks through vision and goals, the daily command meeting and if/then obstacle plans, typing a message to the coach (not sent — no AI provider is called in the demo), logging habits/workouts/food, and an evidence-backed weekly review, all against the same synthetic workspace.
+
+Regenerate both with `npm run demo:assets` (see [Reproducing the demo assets](docs/DEVELOPMENT.md#reproducing-the-demo-assets)).
+
 ## Quick start for development
 
 Requirements: macOS, Node.js 20+, npm, and Git.
@@ -60,6 +75,7 @@ If the provider itself fails mid-conversation (expired auth, an unavailable mode
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
+- [Technical case study](docs/CASE-STUDY.md)
 - [Coaching design](docs/COACHING.md)
 - [Development guide](docs/DEVELOPMENT.md)
 - [MCP integration](docs/MCP.md)

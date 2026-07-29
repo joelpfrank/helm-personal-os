@@ -78,6 +78,20 @@ Use synthetic data in tests and examples. Never submit a real database, token, p
 
 Set `DASHBOARD_DB_PATH` for an isolated database. Tests use isolated state and must not depend on a developer's live Helm installation.
 
+## Reproducing the demo assets
+
+The public screenshots and silent captioned demo use only the deterministic fictional workspace created by `scripts/create-demo-workspace.mjs`. The generator creates a temporary database, random loopback server, ephemeral bearer token, and disposable headless browser profile; it never opens Helm's default data path.
+
+Build the web app, provide development-only browser tooling, then run:
+
+```sh
+npm run build:web
+npm install --no-save playwright-core
+npm run demo:assets
+```
+
+The generator also requires Chromium plus `ffmpeg` and `ffprobe`. It discovers Playwright's browser cache and Google Chrome on macOS, or accepts explicit `HELM_PLAYWRIGHT_CORE_DIR` and `HELM_CHROMIUM` paths. These tools are intentionally not production dependencies. Output is validated for 16:9 geometry, stripped PNG text metadata, H.264/yuv420p video, 60–90 second duration, and no audio stream. The demo is deliberately silent; on-screen captions carry the narrative. The canonical `npm run check` gate uses `ffprobe` to revalidate the exact committed video and separately checks the committed PNG dimensions and metadata, so `ffprobe` is also required for release verification.
+
 ## Environment variables
 
 Common server settings:
