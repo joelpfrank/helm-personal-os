@@ -12,7 +12,10 @@ let cachedTokenBuf = null;
 
 export function getToken() {
   if (cachedToken) return cachedToken;
-  if (fs.existsSync(TOKEN_PATH)) {
+  const ephemeralToken = RUNNING_UNDER_NODE_TEST ? process.env.DASHBOARD_TOKEN?.trim() : '';
+  if (ephemeralToken) {
+    cachedToken = ephemeralToken;
+  } else if (fs.existsSync(TOKEN_PATH)) {
     cachedToken = fs.readFileSync(TOKEN_PATH, 'utf8').trim();
   } else if (RUNNING_UNDER_NODE_TEST) {
     // Test workers need a real token for authenticated route coverage, but must
