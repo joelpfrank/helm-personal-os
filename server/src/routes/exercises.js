@@ -54,12 +54,6 @@ const sql = {
   `),
 };
 
-function searchLike(q) {
-  // Case-insensitive LIKE; escape % and _ in the query string.
-  const pat = `%${String(q).replace(/[%_]/g, '\\$&')}%`;
-  return pat;
-}
-
 router.get('/', (req, res, next) => {
   try {
     const includeArchived = String(req.query.include || '') === 'archived';

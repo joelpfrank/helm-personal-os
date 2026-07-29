@@ -33,6 +33,20 @@ export function getToken() {
 
 export function tokenPath() { return TOKEN_PATH; }
 
+// Parse an "Authorization: Bearer <token>" header without a backtracking
+// regex. The old form `/^Bearer\s+(.+)$/i` was polynomial: `\s+` and `.+`
+// both match spaces, so a header of many spaces forced quadratic backtracking
+// (CodeQL js/polynomial-redos). This does the same job in linear time —
+// require the scheme prefix, at least one whitespace separator, then trim.
+export function parseBearerToken(header) {
+  const s = typeof header === 'string' ? header : '';
+  if (s.slice(0, 6).toLowerCase() !== 'bearer') return null;
+  const rest = s.slice(6);
+  if (rest === '' || rest[0].trim() !== '') return null;
+  const token = rest.trim();
+  return token || null;
+}
+
 // Routes that bypass bearer-token auth. /api/health is read-only and
 // /api/calendar/auth/* is hit by browsers during the Google OAuth
 // dance — they don't carry our Authorization header. The OAuth flow
@@ -46,12 +60,11 @@ export function requireAuth(req, res, next) {
   if (SKIP_PREFIXES.some((p) => req.path === p || req.path.startsWith(p + '/'))) {
     return next();
   }
-  const header = req.get('authorization') || '';
-  const m = /^Bearer\s+(.+)$/i.exec(header);
-  if (!m) {
+  const token = parseBearerToken(req.get('authorization'));
+  if (!token) {
     return res.status(401).json({ error: { code: 'unauthorized', message: 'missing bearer token' } });
   }
-  const provided = Buffer.from(m[1].trim(), 'utf8');
+  const provided = Buffer.from(token, 'utf8');
   const expected = cachedTokenBuf || Buffer.from(getToken(), 'utf8');
   if (provided.length !== expected.length || !crypto.timingSafeEqual(provided, expected)) {
     return res.status(401).json({ error: { code: 'unauthorized', message: 'invalid token' } });

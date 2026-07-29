@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 import { requireAuth } from './auth.js';
 import { errorHandler } from './lib/errors.js';
+import { createApiLimiter, createAuthLimiter } from './lib/rate-limit.js';
 import healthRouter from './routes/health.js';
 import boardsRouter from './routes/boards.js';
 import { boardColumnsRouter, columnsRouter } from './routes/columns.js';
@@ -34,7 +35,18 @@ export function createApp() {
   const app = express();
 
   app.disable('x-powered-by');
+  // Never trust forwarded IP headers — req.ip must be the real socket peer,
+  // otherwise a caller could spoof X-Forwarded-For to get a fresh rate-limit
+  // bucket per request.
+  app.set('trust proxy', false);
   app.use(express.json({ limit: '1mb' }));
+
+  // Global limiter runs before any route dispatch, so it covers every
+  // mutating API route and the SPA fallback below (CodeQL js/missing-rate-limiting).
+  app.use(createApiLimiter());
+  // Tighter, longer-window budget layered on top for the auth endpoints,
+  // to slow credential/token guessing.
+  app.use('/api/auth', createAuthLimiter());
 
   app.use(requireAuth);
 

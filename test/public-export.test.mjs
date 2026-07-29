@@ -28,6 +28,13 @@ function write(root, relativePath, content = `${relativePath}\n`) {
   fs.writeFileSync(target, content);
 }
 
+// Full regex-metacharacter escape (not just the `.`/`/` this test happens to
+// need) so a RegExp built from an arbitrary string can never be misread as
+// pattern syntax (CodeQL js/incomplete-sanitization).
+function escapeRegExp(s) {
+  return String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function fixture() {
   const root = temporaryDirectory('helm-public-source-');
   for (const file of [
@@ -222,7 +229,7 @@ describe('export-public-source.sh', () => {
       const diagnostics = result.stdout + result.stderr;
       assert.notEqual(result.status, 0, `export unexpectedly accepted missing ${relativePath}`);
       assert.match(diagnostics, /missing required source path/i);
-      assert.match(diagnostics, new RegExp(relativePath.replace(/[./]/g, '\\$&')));
+      assert.match(diagnostics, new RegExp(escapeRegExp(relativePath)));
       assert.equal(fs.existsSync(destination), false, 'failure must not create a partial destination');
     }
   });

@@ -12,8 +12,9 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import express from 'express';
+import { rateLimit } from 'express-rate-limit';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 
@@ -47,11 +48,23 @@ function constantTimeEq(a, b) {
   return crypto.timingSafeEqual(a, b);
 }
 
+// Parse "Bearer <token>" without a backtracking regex. The old
+// `/^Bearer\s+(.+)$/i` was polynomial (`\s+` and `.+` both match spaces),
+// so a header of many spaces could stall the event loop
+// (CodeQL js/polynomial-redos). This is linear.
+function parseBearerToken(header) {
+  const s = typeof header === 'string' ? header : '';
+  if (s.slice(0, 6).toLowerCase() !== 'bearer') return null;
+  const rest = s.slice(6);
+  if (rest === '' || rest[0].trim() !== '') return null;
+  const token = rest.trim();
+  return token || null;
+}
+
 function authorizedByHeader(req) {
-  const header = req.get('authorization') || '';
-  const m = /^Bearer\s+(.+)$/i.exec(header);
-  if (!m) return false;
-  return constantTimeEq(Buffer.from(m[1].trim(), 'utf8'), TOKEN_BUF);
+  const token = parseBearerToken(req.get('authorization'));
+  if (!token) return false;
+  return constantTimeEq(Buffer.from(token, 'utf8'), TOKEN_BUF);
 }
 
 function authorizedByPathToken(token) {
@@ -59,9 +72,29 @@ function authorizedByPathToken(token) {
   return constantTimeEq(Buffer.from(token, 'utf8'), TOKEN_BUF);
 }
 
+function positiveInt(value, fallback) {
+  const n = Number.parseInt(value, 10);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
 const app = express();
 app.disable('x-powered-by');
+// Never trust forwarded IP headers: this binds to loopback by default and any
+// reverse proxy is the operator's responsibility. Keeping trust-proxy off means
+// req.ip is the real socket peer, so rate-limit buckets can't be forged with a
+// spoofed X-Forwarded-For.
+app.set('trust proxy', false);
 app.use(express.json({ limit: '4mb' }));
+
+// Blunt runaway clients before any request reaches the (expensive) MCP
+// transport. Local/self-hosted defaults are generous; override via env.
+app.use(rateLimit({
+  windowMs: positiveInt(process.env.MCP_HTTP_RATE_WINDOW_MS, 60 * 1000),
+  limit: positiveInt(process.env.MCP_HTTP_RATE_MAX, 600),
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { jsonrpc: '2.0', error: { code: -32001, message: 'rate limited' } },
+}));
 
 // CORS — Anthropic's servers call us server-to-server, but in case a
 // browser client (claude.ai web?) ever does a preflight, accept it.
@@ -145,14 +178,25 @@ app.post('/mcp/:token', handleMcp);
 app.get('/mcp/:token', handleMcp);
 app.delete('/mcp/:token', handleMcp);
 
-const server = app.listen(PORT, HOST, () => {
-  console.error(`[helm-personal-os-mcp-http] listening on http://${HOST}:${PORT}/mcp`);
-});
+// Exported so tests can mount the app on an ephemeral port without binding the
+// default 8788 or resolving the real on-disk token.
+export { app };
 
-function shutdown(signal) {
-  console.error(`[helm-personal-os-mcp-http] received ${signal}, closing`);
-  server.close(() => process.exit(0));
-  setTimeout(() => process.exit(1), 5000).unref();
+// Only bind a port when run as the entrypoint (`helm-personal-os-mcp-http`),
+// not when imported by a test. realpath handles npm's bin symlink.
+const invokedPath = process.argv[1] ? fs.realpathSync(process.argv[1]) : '';
+const isMain = invokedPath && pathToFileURL(invokedPath).href === import.meta.url;
+
+if (isMain) {
+  const server = app.listen(PORT, HOST, () => {
+    console.error(`[helm-personal-os-mcp-http] listening on http://${HOST}:${PORT}/mcp`);
+  });
+
+  const shutdown = (signal) => {
+    console.error(`[helm-personal-os-mcp-http] received ${signal}, closing`);
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(1), 5000).unref();
+  };
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
 }
-process.on('SIGINT', () => shutdown('SIGINT'));
-process.on('SIGTERM', () => shutdown('SIGTERM'));

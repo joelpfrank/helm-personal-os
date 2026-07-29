@@ -48,8 +48,20 @@ const SUCCESS_STREAM = sse([
   { type: 'message_stop' },
 ]);
 
+// Exact-hostname check (not a substring test) so a URL like
+// "https://evil.example/api.anthropic.com" or
+// "https://api.anthropic.com.evil.example" can never be misrouted to the
+// mock (CodeQL js/incomplete-url-substring-sanitization).
+function isAnthropicApiUrl(url) {
+  try {
+    return new URL(String(url)).hostname === 'api.anthropic.com';
+  } catch {
+    return false;
+  }
+}
+
 globalThis.fetch = async (url, init) => {
-  if (!String(url).includes('api.anthropic.com')) return realFetch(url, init);
+  if (!isAnthropicApiUrl(url)) return realFetch(url, init);
   anthropicRequests.push(JSON.parse(init?.body ?? '{}'));
   if (anthropicMode === 'auth-error') {
     return new Response(JSON.stringify({

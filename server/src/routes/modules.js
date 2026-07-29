@@ -4,6 +4,7 @@ import { errors } from '../lib/errors.js';
 import { appendPosition } from '../lib/positions.js';
 import { intParam, requireString, optionalString, rejectUnknownKeys } from '../lib/validate.js';
 import { MODULE_TEMPLATES } from '../data/module-templates.js';
+import { slugify } from '../lib/slug.js';
 
 const router = Router();
 
@@ -30,7 +31,6 @@ const sql = {
 function parseJSON(s, fallback) { try { return JSON.parse(s); } catch { return fallback; } }
 function shapeModule(row) { return row ? { ...row, schema: parseJSON(row.schema, []), config: parseJSON(row.config, {}) } : null; }
 function shapeItem(row) { return row ? { ...row, data: parseJSON(row.data, {}) } : null; }
-function slugify(s) { return String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, ''); }
 
 // A module's schema is a constrained field-spec the generic UI + coach use.
 function validateSchemaSpec(schema) {

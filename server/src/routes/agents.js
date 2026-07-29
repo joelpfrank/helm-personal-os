@@ -7,6 +7,7 @@ import { runAgentTurn, computeNextRun } from '../lib/agent-runner.js';
 import { reflectAndLearn } from '../lib/self-improve.js';
 import { sendTelegram } from '../lib/notify.js';
 import { AGENT_TEMPLATES } from '../data/agent-templates.js';
+import { slugify } from '../lib/slug.js';
 
 const router = Router();
 
@@ -33,7 +34,6 @@ const sql = {
   listDue: db.prepare("SELECT id FROM agents WHERE enabled = 1 AND schedule_freq != 'manual' AND next_run_at IS NOT NULL AND next_run_at <= ?"),
 };
 
-function slugify(s) { return String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, ''); }
 function uniqueName(base) {
   let name = base || 'agent';
   if (!sql.byName.get(name)) return name;

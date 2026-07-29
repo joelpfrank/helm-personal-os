@@ -7,6 +7,7 @@ import { errors } from '../lib/errors.js';
 import { intParam, requireString, optionalString, rejectUnknownKeys } from '../lib/validate.js';
 import { BACKEND } from '../lib/llm.js';
 import { maskSecretObject, mergeSecrets, parseJSON } from '../lib/external-mcp.js';
+import { slugify } from '../lib/slug.js';
 
 const router = Router();
 
@@ -34,8 +35,6 @@ const sql = {
   `),
   delete: db.prepare('DELETE FROM external_mcp_servers WHERE id = ?'),
 };
-
-function slugify(s) { return String(s).toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, ''); }
 
 // Never return raw secrets — mask header/env values, keep their keys visible.
 function shape(row) {
