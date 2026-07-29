@@ -66,7 +66,10 @@ export default function ChatView() {
     deleteConversation(id).catch(() => {});
   }
 
-  const noApiKey = status && !status.configured;
+  // Structured backend status from /api/chat/status: the server verifies the
+  // active backend (Claude Code auth or API key) and sends summary + setup
+  // guidance — the UI never guesses which credential is missing.
+  const chatUnavailable = !!status && !status.configured;
   const activeConv = conversations.find((c) => c.id === activeId);
   const activeTitle = activeConv?.title;
   const activeModel = activeConv?.model || status?.default_model || 'claude-sonnet-4-6';
@@ -129,9 +132,10 @@ export default function ChatView() {
           </button>
         </div>
         <FirstRunHint id="chat">{t('hint.chat')}</FirstRunHint>
-        {noApiKey && (
+        {chatUnavailable && (
           <div className="chat-banner err">
-            <strong>Chat unavailable.</strong> The server has no <code>ANTHROPIC_API_KEY</code> configured.
+            <strong>{status.summary || t('composer.unavailable')}</strong>
+            {status.setup ? <> {status.setup}</> : null}
           </div>
         )}
         <ChatTranscript
@@ -144,7 +148,7 @@ export default function ChatView() {
           onSend={sendMessage}
           onCancel={cancelStream}
           streaming={streaming}
-          disabled={noApiKey}
+          disabled={chatUnavailable}
         />
       </div>
       {customizeOpen && (

@@ -20,6 +20,7 @@ import {
   makeAssistantAccumulator,
   hasApiKey,
 } from './anthropic.js';
+import { scrubAnthropicEnv } from './backend-status.js';
 
 export const BACKEND = process.env.LLM_BACKEND === 'api' ? 'api' : 'sdk';
 
@@ -96,12 +97,11 @@ async function *sdkStream({ system, messages, model, simplifiedTools = false }) 
 
   const prompt = renderHistoryAsPrompt(messages);
 
-  // Force subscription auth: drop ANTHROPIC_API_KEY from the subprocess
-  // env so the bundled claude binary falls back to ~/.claude/.credentials.json.
-  // Keep the API key around in our parent process so
-  // autoTitle() and other one-shot API calls still have it.
-  const sdkEnv = { ...process.env };
-  delete sdkEnv.ANTHROPIC_API_KEY;
+  // Force subscription auth: scrub every Anthropic credential var from the
+  // subprocess env so the bundled claude binary falls back to
+  // ~/.claude/.credentials.json. Keep the credentials in our parent process
+  // so autoTitle() and other one-shot API calls still have them.
+  const sdkEnv = scrubAnthropicEnv();
 
   const mcpServers = {
     helm: {
@@ -195,8 +195,7 @@ export async function completeText({ system, prompt, model = 'claude-haiku-4-5-2
   }
   try {
     const { query } = await import('@anthropic-ai/claude-agent-sdk');
-    const sdkEnv = { ...process.env };
-    delete sdkEnv.ANTHROPIC_API_KEY;
+    const sdkEnv = scrubAnthropicEnv();
     const opts = {
       systemPrompt: system,
       includePartialMessages: true,

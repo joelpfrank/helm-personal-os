@@ -59,7 +59,7 @@ export const STRINGS = {
 
     'composer.placeholder': 'Type a message, or tap the mic to talk', 'composer.transcribing': 'Transcribing…',
     'composer.recording': 'Recording… tap the mic to stop & transcribe',
-    'composer.send': 'send', 'composer.stop': 'stop', 'composer.unavailable': 'Chat unavailable (no API key configured)',
+    'composer.send': 'send', 'composer.stop': 'stop', 'composer.unavailable': 'Chat unavailable — the coach backend is not set up yet',
 
     'today.morning': 'Good morning', 'today.afternoon': 'Good afternoon', 'today.evening': 'Good evening', 'today.night': 'Good night', 'today.late': 'Up late',
     'today.loading': 'loading your day…', 'today.quickCapture': 'What’s on your mind? Press Enter to send to the coach.',
@@ -106,7 +106,7 @@ export const STRINGS = {
 
     'composer.placeholder': 'Escribe un mensaje, o toca el micrófono para hablar', 'composer.transcribing': 'Transcribiendo…',
     'composer.recording': 'Grabando… toca el micrófono para detener y transcribir',
-    'composer.send': 'enviar', 'composer.stop': 'parar', 'composer.unavailable': 'Chat no disponible (sin clave de API configurada)',
+    'composer.send': 'enviar', 'composer.stop': 'parar', 'composer.unavailable': 'Chat no disponible — el coach aún no está configurado',
 
     'today.morning': 'Buenos días', 'today.afternoon': 'Buenas tardes', 'today.evening': 'Buenas noches', 'today.night': 'Buenas noches', 'today.late': 'Trasnochando',
     'today.loading': 'cargando tu día…', 'today.quickCapture': '¿Qué tienes en mente? Pulsa Enter para enviárselo al coach.',

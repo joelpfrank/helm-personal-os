@@ -13,7 +13,7 @@ export const useChatStore = create((set, get) => ({
   // pendingAssistant: live-building assistant message during streaming
   pendingAssistant: null, // { text: '', toolCalls: [{ id, name, input?, result?, error? }] }
   streaming: false,
-  status: null, // { configured, model, tool_count }
+  status: null, // { configured, backend, state, reason, summary, setup, default_model, models, tool_count }
   loading: false,
   error: null,
 

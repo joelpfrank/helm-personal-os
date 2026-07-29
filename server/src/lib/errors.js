@@ -11,6 +11,7 @@ export const errors = {
   validation: (msg) => new ApiError('validation', msg, 400),
   conflict: (msg) => new ApiError('conflict', msg, 409),
   unauthorized: (msg = 'unauthorized') => new ApiError('unauthorized', msg, 401),
+  unavailable: (msg = 'service unavailable') => new ApiError('unavailable', msg, 503),
 };
 
 export function errorHandler(err, req, res, _next) {

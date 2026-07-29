@@ -8,8 +8,10 @@ import crypto from 'node:crypto';
 import { db } from '../db.js';
 import { errors } from '../lib/errors.js';
 import { intParam, requireString, optionalString, rejectUnknownKeys } from '../lib/validate.js';
-import { hasApiKey } from '../lib/anthropic.js';
 import { streamMessages, generateTitle, makeAssistantAccumulator, BACKEND as LLM_BACKEND } from '../lib/llm.js';
+import { createBackendStatus } from '../lib/backend-status.js';
+import { classifyProviderError, describeForLog } from '../lib/provider-errors.js';
+import { MODELS, DEFAULT_MODEL_ID, resolveModelForBackend } from '../lib/coach-models.js';
 import { filterSimplifiedChatTools } from '../lib/simplified-chat-tools.js';
 import { getAnthropicTools, runTool } from '../../../mcp/src/tools-anthropic.js';
 import { listMemories } from './memories.js';
@@ -72,29 +74,46 @@ const sql = {
 
 // ---------- conversation CRUD ----------
 
-// Models we expose in the picker. Order = recommended display order.
-const MODELS = [
-  { id: 'claude-fable-5',            label: 'Fable 5',    tier: 'premium',  hint: 'most capable — long-horizon, hardest problems (pricier, slower)' },
-  { id: 'claude-opus-4-8',           label: 'Opus 4.8',   tier: 'premium',  hint: 'complex agentic & enterprise work' },
-  { id: 'claude-sonnet-5',           label: 'Sonnet 5',   tier: 'balanced', hint: 'best balance of speed & intelligence — great default' },
-  { id: 'claude-sonnet-4-6',         label: 'Sonnet 4.6', tier: 'balanced', hint: 'previous Sonnet' },
-  { id: 'claude-opus-4-7',           label: 'Opus 4.7',   tier: 'premium',  hint: 'previous Opus flagship' },
-  { id: 'claude-opus-4-6',           label: 'Opus 4.6',   tier: 'premium',  hint: 'older Opus' },
-  { id: 'claude-haiku-4-5-20251001', label: 'Haiku 4.5',  tier: 'cheap',    hint: 'fastest, cheapest — quick logging' },
-];
+// Honest capability check for the active backend (lib/backend-status.js):
+// 'sdk' verifies local Claude Code auth via a cached, bounded `claude auth
+// status` probe; 'api' checks ANTHROPIC_API_KEY presence. Selected ≠
+// configured — the status below never claims the SDK works just because it
+// is the chosen backend.
+const backendStatus = createBackendStatus();
 
-router.get('/status', (_req, res) => {
-  const settings = settingsSql.get.get() || {};
-  // On the SDK backend the chat works without ANTHROPIC_API_KEY because it
-  // uses Claude Code's local subscription auth — so `configured` is true.
-  const configured = LLM_BACKEND === 'sdk' ? true : hasApiKey();
-  res.json({
-    configured,
-    backend: LLM_BACKEND,
-    default_model: settings.default_model || process.env.ANTHROPIC_MODEL || 'claude-sonnet-5',
-    models: MODELS,
-    tool_count: getAnthropicTools().length,
-  });
+// Map a raw provider/SDK failure to a safe SSE error event. Only finite
+// classified metadata (taxonomy code + HTTP status, never message/body/
+// stack) is logged — arbitrary secrets can't be pattern-redacted reliably,
+// so raw provider text is never written anywhere, including server logs.
+function safeErrorEvent(err) {
+  const { code, message } = classifyProviderError(err);
+  console.error(`[chat] provider error: ${describeForLog(err)}`);
+  return { type: 'error', code, message };
+}
+
+router.get('/status', async (_req, res, next) => {
+  try {
+    const settings = settingsSql.get.get() || {};
+    const auth = await backendStatus.getStatus();
+    // Resolve through the same deterministic backend resolver used for
+    // actual turns — a stale/incompatible stored or env default must never
+    // reach the client unresolved.
+    const resolvedDefault = resolveModelForBackend(
+      settings.default_model || process.env.ANTHROPIC_MODEL || null,
+      auth.backend,
+    );
+    res.json({
+      configured: auth.configured,
+      backend: auth.backend,
+      state: auth.state,
+      reason: auth.reason,
+      summary: auth.summary,
+      setup: auth.setup,
+      default_model: resolvedDefault.model || DEFAULT_MODEL_ID,
+      models: MODELS,
+      tool_count: getAnthropicTools().length,
+    });
+  } catch (e) { next(e); }
 });
 
 // Voice → text. The browser records audio (webm/opus on Chrome, mp4/aac on
@@ -673,7 +692,7 @@ async function runApiTurnLoop({ id, send, systemPrompt, workingMessages, model, 
           send({ type: 'text_delta', text: evt.delta.text || '' });
         }
       } else if (evt.type === 'error') {
-        send({ type: 'error', message: evt.error?.message || 'stream error' });
+        send(safeErrorEvent({ message: evt.error?.message, body: { error: evt.error } }));
       }
     }
     const assistantMsg = accumulator.finalize();
@@ -757,7 +776,7 @@ async function runSdkTurn({ id, send, systemPrompt, workingMessages, model, simp
       if (evt.delta?.stop_reason) stopReason = evt.delta.stop_reason;
       if (evt.usage) usage = { ...(usage || {}), ...evt.usage };
     } else if (evt.type === 'error') {
-      send({ type: 'error', message: evt.error?.message || 'stream error' });
+      send(safeErrorEvent({ message: evt.error?.message, body: { error: evt.error } }));
     }
     // message_start / message_stop: ignored (turn boundaries within the
     // SDK's internal agent loop).
@@ -780,7 +799,11 @@ export async function runCoachTurnCollectText({ conversationId, agentInstruction
   }));
   const systemPrompt = buildSystemPrompt({ agentInstructions, agentKey });
   const settings = settingsSql.get.get() || {};
-  const chosenModel = model || settings.default_model || undefined;
+  const resolved = resolveModelForBackend(model || settings.default_model || null, LLM_BACKEND);
+  if (resolved.fallback) {
+    console.warn(`[chat] stored model unavailable on ${LLM_BACKEND} backend — using ${resolved.model}`);
+  }
+  const chosenModel = resolved.model || undefined;
 
   let text = '';
   const send = (evt) => { if (evt && evt.type === 'text_delta') text += evt.text || ''; };
@@ -845,11 +868,13 @@ router.post('/conversations/:id/messages', async (req, res, next) => {
       throw errors.validation(`message too large (>${MAX_TOTAL_CONTENT_BYTES} bytes). Shrink images or split attachments.`);
     }
 
-    // The SDK backend uses Claude Code's local subscription auth; the API
-    // backend needs ANTHROPIC_API_KEY. Only block here if we're on the
-    // API path and the key is missing.
-    if (LLM_BACKEND === 'api' && !hasApiKey()) {
-      throw errors.validation('ANTHROPIC_API_KEY not configured on the server — chat unavailable');
+    // Block early — for BOTH backends — when the backend cannot actually
+    // serve a turn, with the same actionable setup guidance /status carries.
+    // This is what keeps an unconfigured server from ever spawning the SDK
+    // or dialing the provider.
+    const auth = await backendStatus.getStatus();
+    if (!auth.configured) {
+      throw errors.unavailable(`${auth.summary} ${auth.setup}`.trim());
     }
 
     // Append the user message to the DB.
@@ -882,9 +907,16 @@ router.post('/conversations/:id/messages', async (req, res, next) => {
     const tools = simplifiedTools ? filterSimplifiedChatTools(getAnthropicTools()) : getAnthropicTools();
     const systemPrompt = buildSystemPrompt({ agentInstructions: agentRow?.instructions, agentKey });
 
-    // Pick the model: per-conversation > global default > env fallback.
+    // Pick the model: per-conversation > global default > env fallback —
+    // then resolve against the active backend. A stale/incompatible stored
+    // model runs on the documented deterministic fallback (lib/coach-models.js)
+    // instead of silently failing at the provider.
     const settings = settingsSql.get.get() || {};
-    const model = conv.model || settings.default_model || undefined;
+    const resolved = resolveModelForBackend(conv.model || settings.default_model || null, LLM_BACKEND);
+    if (resolved.fallback) {
+      console.warn(`[chat] stored model unavailable on ${LLM_BACKEND} backend — using ${resolved.model}`);
+    }
+    const model = resolved.model || undefined;
 
     try {
       if (LLM_BACKEND === 'sdk') {
@@ -903,7 +935,7 @@ router.post('/conversations/:id/messages', async (req, res, next) => {
       // Self-improvement: cadenced reflection on this coach/agent turn.
       maybeReflectConversation({ conversationId: id, agentKey, role: conv.agent_id ? 'agent' : 'coach', instructions: agentRow?.instructions }).catch(() => {});
     } catch (err) {
-      send({ type: 'error', message: err?.message || String(err) });
+      send(safeErrorEvent(err));
     } finally {
       res.end();
     }

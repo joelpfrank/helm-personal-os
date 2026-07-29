@@ -49,9 +49,13 @@ The default destination is `~/Helm`, and the default service URL is `http://127.
 
 ## AI backends: Claude Code versus API
 
-Helm's default in-app AI backend uses the Claude Agent SDK with credentials from a local Claude Code login. This can use an eligible Claude subscription; it is not the same as making requests with an Anthropic API key. Helm disables the SDK's local file and shell tools for in-app chat and supplies Helm operations through an in-process MCP server.
+Helm's default in-app AI backend (`sdk`) uses the Claude Agent SDK with credentials from a local Claude Code login (`claude` on the machine running Helm; run `claude auth login`). This can use an eligible Claude subscription; it is not the same as making requests with an Anthropic API key. Helm disables the SDK's local file and shell tools for in-app chat and supplies Helm operations through an in-process MCP server.
 
 Set `LLM_BACKEND=api` to select the alternative Anthropic Messages API path. That path requires `ANTHROPIC_API_KEY` and may incur API charges under the operator's Anthropic account. An API key is also used for optional short API-only operations such as automatic conversation titles. In either mode, request content is processed outside the host by Anthropic.
+
+**Selecting a backend is not the same as it being configured.** Helm does not assume the `sdk` backend works just because it's the default — the server verifies local Claude Code auth with a bounded `claude auth status` check (a few seconds max) and caches the result briefly (`HELM_AUTH_STATUS_TTL_MS`, default 30s) so it isn't re-run on every request. No inference call is ever made just to check status, on either backend. `GET /api/chat/status` and the Coach chat banner report one of: ready, or unconfigured with a specific, actionable reason — CLI not installed, not signed in, sign-in expired, status check timed out, or (API backend) no `ANTHROPIC_API_KEY` set. Core Helm surfaces (Tasks, Food, Habits, Workouts, Calendar, non-AI chat CRUD) stay usable in every one of these states; only sending a message to the coach requires the backend to be configured.
+
+If the provider itself fails mid-conversation (expired auth, an unavailable model, rate limiting, or any other provider error), Helm maps the failure to one of a small fixed set of safe, actionable messages sent to the browser. Raw provider response bodies, stack traces, and API keys are never sent to the client, stored in chat history, or written to the server log — arbitrary secrets can't be reliably scrubbed after the fact, so the server logs only a closed set of non-sensitive fields (an error category and, when available, the HTTP status) rather than the raw text. If a conversation's model is no longer available on the active backend (e.g. after switching backends, or an old stored model id), Helm falls back to a documented default model for that turn instead of failing silently.
 
 ## Documentation
 

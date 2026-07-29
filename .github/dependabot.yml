@@ -11,3 +11,24 @@ updates:
       - security
     commit-message:
       prefix: deps
+    groups:
+      # Batch low-risk bumps into one PR; majors stay individual for review.
+      npm-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - minor
+          - patch
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns:
+          - '*'

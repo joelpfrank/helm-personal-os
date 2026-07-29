@@ -90,6 +90,8 @@ Common server settings:
 | `LLM_BACKEND` | `sdk` or `api` | `sdk` |
 | `ANTHROPIC_API_KEY` | API backend and optional API-only calls | unset |
 | `ANTHROPIC_MODEL` | model override | backend default |
+| `HELM_CLAUDE_BIN` | path to the `claude` CLI used for the `sdk` backend's local auth-status probe | `claude` (PATH lookup) |
+| `HELM_AUTH_STATUS_TTL_MS` | how long a verified `sdk` auth-status result is cached before re-probing | `30000` |
 | `DASHBOARD_URL` | API base used by the MCP adapter | `http://127.0.0.1:8787` |
 | `DASHBOARD_TOKEN` | MCP adapter API token override | local token file |
 | `MCP_HTTP_HOST` | MCP HTTP bind address | `127.0.0.1` |
