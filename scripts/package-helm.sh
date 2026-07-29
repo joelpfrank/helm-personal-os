@@ -29,13 +29,11 @@ SHA="$ZIP.sha256"
 # `git add`-ed. Matched against each tracked path; any hit aborts the build.
 # Note: a real secret env file (.env, .env.local, .env.production) is caught,
 # but a committed template (.env.example) is not.
-FORBIDDEN='(^|/)(\.dashboard-token|\.dashboard-password|\.mcp-http-token|\.anthropic-key|\.google-credentials\.json|\.env(\.local|\.production)?)$|(^|/)server/data/|\.log$'
+FORBIDDEN='(^|/)(\.dashboard-token|\.dashboard-password|\.mcp-http-token|\.anthropic-key|\.google-credentials\.json|\.env([^/]*)?)$|(^|/)(server/data|backups?|logs?)/|\.(db|sqlite|sqlite3)(-wal|-shm)?$|\.(log|pem|p12|pfx|key)$'
 
 # Portable allowlist. License/provider notices travel with the software. Old
 # deployment files, development docs/tests, and sender-only integrations are
 # omitted rather than trying to maintain an exclusion list.
-INCLUDE='^(LICENSE|PRIVACY\.md|THIRD_PARTY_LICENSES\.md|package(-lock)?\.json|install-helm\.sh|HERMES-INSTALL\.md|server/|web/|mcp/|scripts/create-demo-workspace\.mjs|launchd/com\.helm\.app\.plist\.template|launchd/helm-launch\.sh)'
-EXCLUDE='^mcp/README\.md$'
 
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
@@ -47,12 +45,21 @@ git ls-files | LC_ALL=C sort > "$STAGE/tracked-files"
 
 count=0
 while IFS= read -r f; do
-  if [[ "$f" =~ $FORBIDDEN ]]; then
+  if [[ "$f" =~ $FORBIDDEN ]] && [[ "$f" != .env.example && "$f" != */.env.example ]]; then
     echo "refusing to package sensitive tracked file: $f" >&2
     exit 1
   fi
-  [[ "$f" =~ $INCLUDE ]] || continue
-  [[ "$f" =~ $EXCLUDE ]] && continue
+  include=false
+  case "$f" in
+    LICENSE|PRIVACY.md|THIRD_PARTY_LICENSES.md|package.json|package-lock.json|install-helm.sh|HERMES-INSTALL.md|scripts/create-demo-workspace.mjs|launchd/com.helm.app.plist.template|launchd/helm-launch.sh)
+      include=true
+      ;;
+    server/*|web/*|mcp/*)
+      include=true
+      ;;
+  esac
+  [[ "$include" == true ]] || continue
+  [[ "$f" == mcp/README.md ]] && continue
   mkdir -p "$DEST/$(dirname "$f")"
   cp "$f" "$DEST/$f"
   count=$((count + 1))

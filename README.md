@@ -72,7 +72,7 @@ npm run check
 npm run package:portable
 ```
 
-`npm run check` runs the Node test suite and production frontend build. The portable-package command creates a blank-data publication archive and runs its export checks; it does not package an operator's database or credentials.
+`npm run check` runs the Node test suite, production frontend build, public metadata and privacy checks, forbidden-path scan, reproducible portable-package build and inspection, an independent secret scan, and the production dependency audit. It writes the verified blank-data archive and checksum under `dist/`; it does not package an operator's database or credentials.
 
 ## Known limits
 

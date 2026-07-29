@@ -33,8 +33,10 @@ Requirements: macOS, Node.js 20+, npm, and Git.
 2. `npm install` (installs all workspaces: `server`, `web`, `mcp`).
 3. `npm test` — runs the full test suite.
 4. `npm run build` — builds the production frontend bundle.
-5. `npm run check` — runs tests and the build together; this is the gate
-   your pull request needs to pass.
+5. `npm run check` — runs the complete local release gate: tests, production
+   build, public-source safety checks, reproducible package inspection, secret
+   scan, and production dependency audit. This is the gate your pull request
+   needs to pass.
 
 ## Reporting bugs and requesting features
 

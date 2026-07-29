@@ -23,3 +23,14 @@ Maintainers will acknowledge a report as soon as practical, investigate it priva
 ## Scope and operator responsibilities
 
 Helm is initially a local, self-hosted, single-user application. Operators are responsible for host security, filesystem permissions, backups, network exposure, reverse proxies, provider credentials, and timely dependency updates. Never expose Helm directly to an untrusted network without appropriate authentication and transport security.
+
+## Maintainer release checks
+
+`npm run check` is the canonical local gate. It includes tests, a production
+build, public-source privacy checks, deterministic archive inspection, an
+independent candidate-tree secret detector, and the production dependency
+audit. Before publishing or tagging, maintainers also run
+`npm run security:gitleaks` and `npm run security:scan-history` against the
+complete fresh public Git history. Gitleaks can be installed on macOS with
+`brew install gitleaks`. Findings are investigated individually; test fixtures
+must not be handled with broad detector exclusions.

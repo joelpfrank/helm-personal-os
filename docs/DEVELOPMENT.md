@@ -24,13 +24,23 @@ npm ci
 npm run check
 ```
 
-`npm run check` executes the complete Node test suite and then builds the production web bundle. Useful individual commands are:
+`npm run check` executes the complete Node test suite, builds the production web bundle, scans the candidate source for private identifiers and forbidden files, builds and inspects the portable archive twice for reproducibility, runs an independent secret scan, and audits production dependencies. Useful individual commands are:
 
 ```sh
 npm test
 npm run build
 npm run package:portable
+npm run security:scan-history
 ```
+
+Before a release, install [Gitleaks](https://github.com/gitleaks/gitleaks)
+(`brew install gitleaks` on macOS) and run `npm run security:gitleaks`. Then run
+`npm run security:scan-history` as an independent detector over every blob in
+the fresh public Git history. Do not add broad fixture allow-lists to make a
+finding disappear; split synthetic canaries in test source and investigate any
+real finding. `npm audit --omit=dev` must have no critical or high production
+advisories. Record a precise, exposure-based exception if a future advisory
+cannot be fixed immediately rather than claiming zero vulnerabilities.
 
 The packaging command creates and checks a blank-data portable archive. Do not use an archive as a backup of live data.
 

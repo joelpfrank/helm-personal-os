@@ -12,7 +12,9 @@
     "build": "npm run build:web",
     "start": "node server/src/index.js",
     "test": "node --test test/*.test.mjs",
-    "check": "npm run test && npm run build",
+    "check": "npm run test && npm run build && node scripts/check-public-safety.mjs && node scripts/scan-secrets.mjs && npm audit --omit=dev --audit-level=high",
+    "security:gitleaks": "gitleaks git --redact --no-banner .",
+    "security:scan-history": "node scripts/scan-secrets.mjs --history",
     "package:portable": "bash scripts/package-helm.sh",
     "demo:create": "node scripts/create-demo-workspace.mjs"
   },
