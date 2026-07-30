@@ -74,6 +74,26 @@ describe('workspace package Helm-safe names', () => {
   });
 });
 
+describe('release version identity', () => {
+  it('uses the root version everywhere users and clients can observe it', () => {
+    const version = readJson('package.json').version;
+    assert.equal(version, '0.1.1');
+    for (const manifest of ['server/package.json', 'web/package.json', 'mcp/package.json']) {
+      assert.equal(readJson(manifest).version, version, `${manifest} version must match root`);
+    }
+    const lock = readJson('package-lock.json');
+    for (const key of ['', 'server', 'web', 'mcp']) {
+      assert.equal(lock.packages?.[key]?.version, version, `lockfile ${key || 'root'} version must match root`);
+    }
+    for (const source of ['server/src/routes/health.js', 'server/src/lib/llm.js', 'mcp/src/index.js', 'mcp/src/http.js']) {
+      assert.doesNotMatch(readText(source), /version:\s*'0\.1\.0'/, `${source} must not report 0.1.0`);
+      assert.match(readText(source), new RegExp(`version:\\s*'${version.replaceAll('.', '\\.')}'`));
+    }
+    assert.match(readText('CHANGELOG.md'), /^## \[0\.1\.1\]/m);
+    assert.match(readText('CHANGELOG.md'), /^\[0\.1\.1\]: .*\/releases\/tag\/v0\.1\.1$/m);
+  });
+});
+
 describe('lockfile and public governance metadata', () => {
   it('keeps root and workspace names consistent in package-lock.json', () => {
     const lock = readJson('package-lock.json');

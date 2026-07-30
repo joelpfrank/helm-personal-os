@@ -60,7 +60,7 @@ The portable installer stages dependencies and the frontend before replacing an 
 ./install-helm.sh
 ```
 
-The default destination is `~/Helm`, and the default service URL is `http://127.0.0.1:8787`. Read [HERMES-INSTALL.md](HERMES-INSTALL.md) before using an archive or upgrade.
+The default destination is `~/Helm`, and the default service URL is `http://127.0.0.1:8787`. Read [HERMES-INSTALL.md](HERMES-INSTALL.md) before using an archive or upgrade. To connect an assistant after installation, use the [Agent integrations](AGENT-INTEGRATIONS.md) guide.
 
 ## AI backends: Claude Code versus API
 
@@ -78,6 +78,7 @@ If the provider itself fails mid-conversation (expired auth, an unavailable mode
 - [Technical case study](docs/CASE-STUDY.md)
 - [Coaching design](docs/COACHING.md)
 - [Development guide](docs/DEVELOPMENT.md)
+- [Agent integrations](AGENT-INTEGRATIONS.md)
 - [MCP integration](docs/MCP.md)
 - [Known limitations](docs/KNOWN-LIMITATIONS.md)
 - [Roadmap](docs/ROADMAP.md)

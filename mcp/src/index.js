@@ -7,7 +7,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 
 import { registerTools } from './tools.js';
 
-const server = new McpServer({ name: 'helm-personal-os-mcp', version: '0.1.0' });
+const server = new McpServer({ name: 'helm-personal-os-mcp', version: '0.1.1' });
 registerTools(server);
 
 async function main() {

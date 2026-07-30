@@ -4,6 +4,14 @@ All notable changes to Helm Personal OS are documented here.
 
 This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-07-29
+
+### Fixed
+
+- Made optional Hermes MCP registration non-interactive, time-bounded, and truthful: installation now requires non-zero tool discovery and restores the prior Hermes configuration if post-save verification fails.
+- Added a prominent agent-integration guide with verified Hermes setup, generic stdio configuration, external-state propagation, privacy boundaries, and version-honest OpenClaw guidance.
+- Included the linked MCP guide in the fail-closed portable archive and aligned every package and runtime version surface with this patch release.
+
 ## [0.1.0] - 2026-07-29
 
 ### Added
@@ -33,4 +41,5 @@ This project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 See [Known limitations](docs/KNOWN-LIMITATIONS.md) for the complete release caveats.
 
+[0.1.1]: https://github.com/joelpfrank/helm-personal-os/releases/tag/v0.1.1
 [0.1.0]: https://github.com/joelpfrank/helm-personal-os/releases/tag/v0.1.0

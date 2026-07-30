@@ -113,7 +113,7 @@ app.use((req, res, next) => {
 
 // Health (no auth) — useful for local or reverse-proxy monitoring.
 app.get('/health', (_req, res) => {
-  res.json({ ok: true, service: 'helm-personal-os-mcp-http', version: '0.1.0' });
+  res.json({ ok: true, service: 'helm-personal-os-mcp-http', version: '0.1.1' });
 });
 
 // Two authentication modes:
@@ -152,7 +152,7 @@ async function handleMcp(req, res) {
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined, // stateless: 1 transport per request
     });
-    const server = new McpServer({ name: 'helm-personal-os-mcp', version: '0.1.0' });
+    const server = new McpServer({ name: 'helm-personal-os-mcp', version: '0.1.1' });
     registerTools(server);
 
     res.on('close', () => {

@@ -1,11 +1,16 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 
 import {
+  checkCommitMetadata,
   findForbiddenPath,
   findSensitiveContent,
+  isTextBuffer,
+  pngPrivacyMetadataChunks,
   portableArchivePathAllowed,
   summarizeAudit,
 } from '../scripts/check-public-safety.mjs';
@@ -23,6 +28,7 @@ describe('canonical public release gate', () => {
     assert.match(check, /npm run test/);
     assert.match(check, /npm run build/);
     assert.match(check, /check-public-safety[.]mjs/);
+    assert.match(check, /check-public-safety[.]mjs --history/);
     assert.match(check, /npm audit --omit=dev/);
   });
 
@@ -33,9 +39,104 @@ describe('canonical public release gate', () => {
     assert.match(scripts['security:gitleaks'] ?? '', /gitleaks git/);
     assert.match(fs.readFileSync(path.join(ROOT, 'SECURITY.md'), 'utf8'), /complete fresh public Git history/i);
   });
+
+  it('makes commit-header privacy part of the complete-history gate', () => {
+    const safety = fs.readFileSync(path.join(ROOT, 'scripts/check-public-safety.mjs'), 'utf8');
+    assert.match(safety, /checkCommitMetadata/);
+    assert.match(safety, /commit metadata:/);
+  });
+});
+
+describe('commit metadata privacy policy', () => {
+  function commitFixture(email) {
+    const repository = fs.mkdtempSync(path.join(os.tmpdir(), 'helm-commit-metadata-'));
+    execFileSync('git', ['init', '-q', '--initial-branch=main'], { cwd: repository });
+    fs.writeFileSync(path.join(repository, 'README.md'), 'public fixture\n');
+    execFileSync('git', ['add', 'README.md'], { cwd: repository });
+    execFileSync('git', ['commit', '-q', '-m', 'fixture'], {
+      cwd: repository,
+      env: {
+        ...process.env,
+        GIT_AUTHOR_NAME: 'Public Maintainer',
+        GIT_AUTHOR_EMAIL: email,
+        GIT_COMMITTER_NAME: 'Public Maintainer',
+        GIT_COMMITTER_EMAIL: email,
+      },
+    });
+    return repository;
+  }
+
+  it('accepts only the account-associated GitHub noreply identity across all refs', () => {
+    const allowed = '33599724+' + 'joelpfrank' + '@users.noreply.github.com';
+    const repository = commitFixture(allowed);
+    try {
+      execFileSync('git', ['branch', 'release-candidate'], { cwd: repository });
+      execFileSync('git', ['tag', '-a', 'v0.1.0', '-m', 'fixture release'], {
+        cwd: repository,
+        env: {
+          ...process.env,
+          GIT_COMMITTER_NAME: 'Public Maintainer',
+          GIT_COMMITTER_EMAIL: allowed,
+        },
+      });
+      assert.deepEqual(checkCommitMetadata(repository), { refs: 3, commits: 1, annotatedTags: 1 });
+    } finally {
+      fs.rmSync(repository, { recursive: true, force: true });
+    }
+  });
+
+  it('fails closed without reproducing a disallowed address in output', () => {
+    const disallowed = 'private-owner' + '@real-domain.invalid';
+    const repository = commitFixture(disallowed);
+    try {
+      assert.throws(
+        () => checkCommitMetadata(repository),
+        (error) => {
+          assert.match(error.message, /commit metadata privacy scan failed/);
+          assert.match(error.message, /author email is not the approved GitHub noreply identity/);
+          assert.equal(error.message.includes(disallowed), false);
+          return true;
+        },
+      );
+    } finally {
+      fs.rmSync(repository, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('tracked-file safety policy', () => {
+  it('rejects a tracked file reached through an ignored symlinked ancestor', () => {
+    const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'helm-public-safety-'));
+    const repository = path.join(fixture, 'repository');
+    const external = path.join(fixture, 'external');
+    try {
+      fs.mkdirSync(path.join(repository, 'scripts'), { recursive: true });
+      fs.mkdirSync(path.join(repository, 'docs'), { recursive: true });
+      fs.mkdirSync(external);
+      fs.copyFileSync(
+        path.join(ROOT, 'scripts/check-public-safety.mjs'),
+        path.join(repository, 'scripts/check-public-safety.mjs'),
+      );
+      fs.writeFileSync(path.join(repository, 'docs/MCP.md'), 'tracked public documentation\n');
+      execFileSync('git', ['init', '-q'], { cwd: repository });
+      execFileSync('git', ['add', 'scripts/check-public-safety.mjs', 'docs/MCP.md'], { cwd: repository });
+
+      fs.renameSync(path.join(repository, 'docs/MCP.md'), path.join(external, 'MCP.md'));
+      fs.rmdirSync(path.join(repository, 'docs'));
+      fs.symlinkSync(external, path.join(repository, 'docs'));
+      fs.writeFileSync(path.join(repository, '.git/info/exclude'), 'docs\n');
+
+      const result = spawnSync(process.execPath, ['scripts/check-public-safety.mjs'], {
+        cwd: repository,
+        encoding: 'utf8',
+      });
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /docs\/MCP[.]md: tracked path ancestor docs must be a real directory, not a symlink/);
+    } finally {
+      fs.rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
   it('rejects private data, credential, backup, log, and environment paths', () => {
     for (const candidate of [
       'server/data/helm.db',
@@ -67,7 +168,7 @@ describe('tracked-file safety policy', () => {
       '/' + 'Users/' + 'private-owner/project',
       '/' + 'home/' + 'private-owner/project',
       '/' + 'opt/' + 'private/helm',
-      'a@' + 'example.invalid',
+      'a@' + 'private.invalid',
       '+' + '447700900123',
       'private-host.lo' + 'cal',
     ];
@@ -76,9 +177,30 @@ describe('tracked-file safety policy', () => {
     }
   });
 
-  it('allows only the documented synthetic email placeholder', () => {
-    assert.equal(findSensitiveContent(Buffer.from('Use test@' + 'example.com in fixtures.')), null);
-    assert.ok(findSensitiveContent(Buffer.from('Use owner@' + 'example.com in fixtures.')));
+  it('allows reserved synthetic email domains but rejects ordinary addresses', () => {
+    for (const domain of ['example.com', 'example.invalid', 'example.test']) {
+      assert.equal(findSensitiveContent(Buffer.from(`Use owner@${domain} in fixtures.`)), null);
+    }
+    assert.ok(findSensitiveContent(Buffer.from('Use owner@' + 'real-domain.test.invalid in fixtures.')));
+  });
+
+  it('does not decode arbitrary binary bytes as public text', () => {
+    assert.equal(isTextBuffer(Buffer.from([0x00, 0x2f, 0x55, 0x73, 0x65, 0x72, 0x73, 0x2f])), false);
+    assert.equal(isTextBuffer(Buffer.from([0xff, 0xfe, 0x2f, 0x68, 0x6f, 0x6d, 0x65, 0x2f])), false);
+    assert.equal(isTextBuffer(Buffer.from('ordinary UTF-8 source ✓')), true);
+  });
+
+  it('rejects identifying PNG text and EXIF chunks', () => {
+    const png = (...chunks) => Buffer.concat([
+      Buffer.from('\x89PNG\r\n\x1a\n', 'binary'),
+      ...chunks.map((type) => Buffer.concat([
+        Buffer.alloc(4),
+        Buffer.from(type, 'ascii'),
+        Buffer.alloc(4),
+      ])),
+    ]);
+    assert.deepEqual(pngPrivacyMetadataChunks(png('IHDR', 'IDAT', 'IEND')), []);
+    assert.deepEqual(pngPrivacyMetadataChunks(png('IHDR', 'tEXt', 'eXIf', 'IEND')), ['eXIf', 'tEXt']);
   });
 });
 
@@ -113,6 +235,7 @@ describe('portable archive policy', () => {
   it('allows only a single Helm directory and rejects unsafe archive members', () => {
     assert.equal(portableArchivePathAllowed('Helm/server/src/index.js'), true);
     assert.equal(portableArchivePathAllowed('Helm/LICENSE'), true);
+    assert.equal(portableArchivePathAllowed('Helm/docs/MCP.md'), true);
     for (const member of [
       '../outside',
       'Helm/../../outside',

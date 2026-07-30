@@ -41,7 +41,7 @@ const _sdkMcpInstances = new Map();
 function getSdkMcpInstance({ simplified = false } = {}) {
   const key = simplified ? 'simplified' : 'full';
   if (_sdkMcpInstances.has(key)) return _sdkMcpInstances.get(key);
-  const s = new McpServer({ name: `helm-${key}`, version: '0.1.0' });
+  const s = new McpServer({ name: `helm-${key}`, version: '0.1.1' });
   registerTools(simplified ? simplifiedToolServer(s) : s, { simplified });
   _sdkMcpInstances.set(key, s);
   return s;

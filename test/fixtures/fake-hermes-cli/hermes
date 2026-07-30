@@ -17,6 +17,10 @@
 //   test_fails  - `mcp add` behaves like normal, but `mcp test` prints a
 //                 connection failure while exiting zero, matching Hermes
 //                 v0.18.2's misleading process status.
+//   test_hang   - `mcp add` persists, then `mcp test` never exits.
+//   zero_tools  - `mcp add` persists, then `mcp test` reports zero tools.
+//   config_path_unsupported - the CLI lacks the config-path capability used
+//                 for fail-closed registration rollback.
 //   overwrite_cancel - an existing registration survives while `mcp add`
 //                 misleadingly exits zero without printing the save marker.
 import fs from 'node:fs';
@@ -67,13 +71,27 @@ function parseAddArgs(rest) {
 
 function persistAndReportAdded(name, spec) {
   const reg = readRegistry();
-  reg[name] = { ...spec, tools: 112, testFails: MODE === 'test_fails' };
+  reg[name] = {
+    ...spec,
+    tools: MODE === 'zero_tools' ? 0 : 112,
+    testFails: MODE === 'test_fails',
+    testHangs: MODE === 'test_hang',
+  };
   writeRegistry(reg);
   process.stdout.write(`Saved '${name}' to fake/config.yaml (112/112 tools enabled)\n`);
   process.exit(0);
 }
 
 const [, , top, sub, ...rest] = process.argv;
+
+if (top === 'config' && sub === 'path') {
+  if (MODE === 'config_path_unsupported') {
+    process.stderr.write('fake hermes: unsupported command config path\n');
+    process.exit(2);
+  }
+  process.stdout.write(`${STATE}\n`);
+  process.exit(0);
+}
 
 if (top !== 'mcp') {
   process.stderr.write(`fake hermes: unsupported command ${top}\n`);
@@ -122,7 +140,7 @@ if (sub === 'remove') {
     // Never read stdin, never exit — the caller must bound this itself.
     setInterval(() => {}, 1 << 30);
   } else {
-    // normal + test_fails both go through the real interactive prompt.
+    // All remaining modes go through the real interactive prompt.
     process.stdout.write('Enable all 112 tools? [Y/n/select] ');
     let answered = false;
     let buf = '';
@@ -151,7 +169,9 @@ if (sub === 'remove') {
   const name = rest[0];
   const reg = readRegistry();
   const entry = reg[name];
-  if (entry && !entry.testFails) {
+  if (entry?.testHangs) {
+    setInterval(() => {}, 1 << 30);
+  } else if (entry && !entry.testFails) {
     process.stdout.write(`  ✓ Connected (127ms)\n  ✓ Tools discovered: ${entry.tools}\n`);
     process.exit(0);
   }

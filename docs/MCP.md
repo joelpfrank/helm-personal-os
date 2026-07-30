@@ -18,14 +18,14 @@ node mcp/src/index.js
 
 A compatible MCP host should launch that command from the Helm installation. The process communicates JSON-RPC over stdin/stdout and sends diagnostics to stderr. Tool calls are forwarded to `DASHBOARD_URL`, which defaults to `http://127.0.0.1:8787`.
 
-[Hermes Agent](https://hermes-agent.nousresearch.com/docs) is an optional third-party MCP-compatible agent host; Helm does not require it. When the `hermes` command is available on PATH, the macOS installer attempts registration, answers the current tool-selection prompt, and verifies the persisted server with `hermes mcp test helm` (`--no-hermes` skips this). A failed verification is reported rather than presented as success. Manual copy-paste setup is:
+[Hermes Agent](https://hermes-agent.nousresearch.com/docs) is an optional third-party MCP-compatible agent host; Helm does not require it. The [Agent integrations](../AGENT-INTEGRATIONS.md) guide is the canonical setup and permissions reference for Hermes, generic stdio hosts, and OpenClaw. When the `hermes` command is available on PATH, the macOS installer attempts registration, answers the current tool-selection prompt, and verifies the persisted server with `hermes mcp test helm` (`--no-hermes` skips this). A failed verification returns nonzero rather than being presented as success; standalone Helm remains installed for manual recovery. Manual copy-paste setup is:
 
 ```sh
-hermes mcp add helm --command node --env DASHBOARD_URL=http://127.0.0.1:8787 --args /absolute/path/to/Helm/mcp/src/index.js
+hermes mcp add helm --command node --env DASHBOARD_URL=http://127.0.0.1:8787 HELM_STATE_DIR=/absolute/path/to/Helm-state --args /absolute/path/to/Helm/mcp/src/index.js
 hermes mcp test helm
 ```
 
-The first command may ask whether to enable all discovered tools. Keep `--args` last because Hermes treats everything after it as child-process arguments. [HERMES-INSTALL.md](../HERMES-INSTALL.md) contains the full generic stdio `mcpServers` JSON block and version-honest OpenClaw guidance. For the audited OpenClaw `2026.3.13` release, documentation advertises `mcp.servers` but the installed CLI has no verified `openclaw mcp` subcommand; configure the documented key manually or use a compatible stdio bridge, then verify discovery. Registration is local configuration, not publication of the service to a network.
+`HELM_STATE_DIR` must match an external installer `--state-dir`; omit that assignment for the default/in-prefix layout. The first command may ask whether to enable all discovered tools. Keep `--args` last because Hermes treats everything after it as child-process arguments. [HERMES-INSTALL.md](../HERMES-INSTALL.md) contains the full generic stdio `mcpServers` JSON block. The [Agent integrations](../AGENT-INTEGRATIONS.md) guide records verification dated 2026-07-30: Hermes Agent `0.18.2` supports the commands above, while OpenClaw `2026.3.13` has no native `openclaw mcp` command and must use its bundled mcporter skill plus the generic stdio configuration. Registration is local configuration, not publication of the service to a network.
 
 ## Streamable HTTP transport
 

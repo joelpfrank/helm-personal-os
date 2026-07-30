@@ -73,6 +73,7 @@ REQUIRED_DIRS=(
 )
 OPTIONAL_FILES=(
   .gitignore
+  AGENT-INTEGRATIONS.md
   HERMES-INSTALL.md
   install-helm.sh
   start.sh

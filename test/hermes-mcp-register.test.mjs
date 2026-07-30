@@ -137,7 +137,7 @@ describe('install-helm.sh Hermes registration against a realistic v0.18.2-style 
       mode: 'overwrite_cancel', stateFile,
     });
 
-    assert.equal(res.status, 0, 'optional Hermes registration must not fail the Helm install');
+    assert.notEqual(res.status, 0, 'a cancelled replacement must fail the attempted integrated install');
     assert.doesNotMatch(res.stdout, /registered and verified/i,
       'a stale server must never satisfy replacement verification');
     assert.match(res.stdout + res.stderr, /registration did not complete|mcp add helm failed/i);
@@ -152,12 +152,14 @@ describe('install-helm.sh Hermes registration against a realistic v0.18.2-style 
     const res = runInstaller(['--prefix', prefix], { mode: 'hang', stateFile, timeout: 30_000 });
     const elapsedMs = Date.now() - started;
 
-    assert.equal(res.status, 0, 'a failed Hermes registration must not fail the whole install');
+    assert.notEqual(res.status, 0, 'an attempted but unverified Hermes registration must fail the installer');
     assert.ok(elapsedMs < 15_000, `installer must bound the hung hermes call, took ${elapsedMs}ms`);
     assert.doesNotMatch(res.stdout, /registered and verified/i, 'must not claim success on a hang');
     assert.match(res.stdout + res.stderr, /did not complete|timed out|failed/i);
     assert.match(res.stdout + res.stderr, /hermes mcp add helm/, 'must print manual retry instructions');
     assert.match(res.stdout + res.stderr, /hermes mcp test helm/, 'must print how to verify manually');
+    assert.ok(fs.existsSync(path.join(prefix, 'mcp', 'src', 'index.js')),
+      'the completed standalone install must remain available for the printed manual recovery command');
   });
 
   it('fails closed when `hermes mcp test` prints failure but misleadingly exits zero', () => {
@@ -165,10 +167,50 @@ describe('install-helm.sh Hermes registration against a realistic v0.18.2-style 
     const stateFile = path.join(TMP, 'registry-test-fails.json');
     const res = runInstaller(['--prefix', prefix], { mode: 'test_fails', stateFile });
 
-    assert.equal(res.status, 0);
+    assert.notEqual(res.status, 0);
     assert.doesNotMatch(res.stdout, /registered and verified/i, 'must not claim success when verification fails');
     assert.match(res.stdout + res.stderr, /hermes mcp test helm.*failed|failed.*hermes mcp test helm/is);
   });
+
+  it('rejects a successful connection that discovers zero tools', () => {
+    const prefix = path.join(TMP, 'app-zero-tools');
+    const stateFile = path.join(TMP, 'registry-zero-tools.json');
+    const res = runInstaller(['--prefix', prefix], { mode: 'zero_tools', stateFile });
+
+    assert.notEqual(res.status, 0);
+    assert.doesNotMatch(res.stdout, /registered and verified/i);
+    assert.match(res.stdout + res.stderr, /Tools discovered:\s*0/);
+    assert.match(res.stdout + res.stderr, /mcp test helm.*failed|failed.*mcp test helm/is);
+  });
+
+  for (const mode of ['test_fails', 'test_hang']) {
+    it(`restores the exact prior Hermes config when post-save verification ${mode === 'test_hang' ? 'times out' : 'fails'}`, () => {
+      const prefix = path.join(TMP, `app-restore-prior-${mode}`);
+      const stateFile = path.join(TMP, `registry-restore-prior-${mode}.json`);
+      const prior = {
+        helm: {
+          command: '/previous/node',
+          args: ['/previous/helm/mcp/src/index.js'],
+          env: { DASHBOARD_URL: 'http://127.0.0.1:7777', HELM_STATE_DIR: '/previous/state' },
+          tools: 112,
+        },
+        unrelated: { command: '/keep/me', args: [], env: {}, tools: 3 },
+      };
+      const priorBytes = `${JSON.stringify(prior, null, 2)}\n`;
+      fs.writeFileSync(stateFile, priorBytes, { mode: 0o600 });
+
+      const res = runInstaller(['--prefix', prefix], {
+        mode, stateFile, timeout: 30_000,
+      });
+
+      assert.notEqual(res.status, 0, 'failed post-save verification must fail the integrated install');
+      assert.doesNotMatch(res.stdout, /registered and verified/i);
+      assert.equal(fs.readFileSync(stateFile, 'utf8'), priorBytes,
+        'post-save verification failure must restore the complete prior config byte-for-byte');
+      assert.equal(fs.statSync(stateFile).mode & 0o777, 0o600,
+        'rollback must preserve the private config mode');
+    });
+  }
 
   it('does not remove a working prior registration before a replacement is verified', () => {
     const prefix = path.join(TMP, 'app-preserve-prior');
@@ -187,7 +229,7 @@ describe('install-helm.sh Hermes registration against a realistic v0.18.2-style 
       mode: 'hang', stateFile, timeout: 30_000,
     });
 
-    assert.equal(res.status, 0);
+    assert.notEqual(res.status, 0);
     assert.deepEqual(JSON.parse(fs.readFileSync(stateFile, 'utf8')), prior,
       'a failed replacement must leave the prior Hermes registration intact');
   });
@@ -199,6 +241,21 @@ describe('install-helm.sh Hermes registration against a realistic v0.18.2-style 
 
     assert.equal(res.status, 0, res.stdout + res.stderr);
     assert.match(res.stdout, /registered and verified/i);
+  });
+
+  it('fails noninteractively with manual guidance when the installed Hermes CLI lacks the required config-path support', () => {
+    const prefix = path.join(TMP, 'app-unsupported-cli');
+    const stateFile = path.join(TMP, 'registry-unsupported-cli.json');
+    const res = runInstaller(['--prefix', prefix], {
+      mode: 'config_path_unsupported', stateFile,
+    });
+
+    assert.notEqual(res.status, 0);
+    assert.doesNotMatch(res.stdout, /registered and verified/i);
+    assert.match(res.stdout + res.stderr, /could not resolve the active Hermes config path|unsupported/i);
+    assert.match(res.stdout + res.stderr, /hermes mcp add helm/);
+    assert.match(res.stdout + res.stderr, /hermes mcp test helm/);
+    assert.ok(fs.existsSync(path.join(prefix, 'mcp', 'src', 'index.js')));
   });
 
   it('never prints the dashboard token while registering with Hermes', () => {
@@ -214,7 +271,7 @@ describe('install-helm.sh Hermes registration against a realistic v0.18.2-style 
     assert.ok(!res.stderr.includes(sentinel), 'stderr must never contain the dashboard token');
   });
 
-  it('the installer summary reports Hermes status truthfully instead of an unconditional claim', () => {
+  it('only reaches the success summary after verified registration', () => {
     const prefixOk = path.join(TMP, 'app-summary-ok');
     const stateFileOk = path.join(TMP, 'registry-summary-ok.json');
     const ok = runInstaller(['--prefix', prefixOk], { mode: 'normal', stateFile: stateFileOk });
@@ -223,7 +280,9 @@ describe('install-helm.sh Hermes registration against a realistic v0.18.2-style 
     const prefixFail = path.join(TMP, 'app-summary-fail');
     const stateFileFail = path.join(TMP, 'registry-summary-fail.json');
     const fail = runInstaller(['--prefix', prefixFail], { mode: 'hang', stateFile: stateFileFail, timeout: 30_000 });
-    assert.match(fail.stdout, /Hermes MCP:.*did not complete/i);
+    assert.notEqual(fail.status, 0);
+    assert.doesNotMatch(fail.stdout, /==> Done\.|Hermes MCP:.*registered and verified/i);
+    assert.match(fail.stdout + fail.stderr, /registration did not complete/i);
   });
 });
 

@@ -9,7 +9,9 @@ own machine (`127.0.0.1`).
 Helm works completely standalone — no Hermes required. [**Hermes Agent**](https://hermes-agent.nousresearch.com/docs) is an
 optional third-party MCP-compatible agent host some operators use to drive
 installs and register local MCP servers non-interactively; if you don't use
-one, skip straight to the direct install below.
+one, skip straight to the direct install below. For one canonical setup and
+permissions reference across Hermes, generic stdio hosts, and OpenClaw, see
+[Agent integrations](AGENT-INTEGRATIONS.md).
 
 ## Direct install
 
@@ -30,8 +32,9 @@ cd Helm
   only — nothing is exposed to your network.
 - When Hermes is on your PATH, attempts to register the local MCP server,
   answers Hermes's tool-selection prompt, and verifies the result with
-  `hermes mcp test helm`. A failed verification is reported with manual retry
-  commands; pass `--no-hermes` to skip this optional step.
+  `hermes mcp test helm`. A failed verification returns nonzero with manual
+  retry commands; standalone Helm remains installed. Pass `--no-hermes` to
+  skip this optional integration step.
 - Verifies `/api/health` before finishing.
 
 It **won't overwrite** an existing install or data unless you pass `--upgrade`.
@@ -72,17 +75,20 @@ MCP server for you, unzip `Helm-portable.zip` and give Hermes this prompt
 
 Hermes runs the same `install-helm.sh` installer non-interactively. Current
 Hermes versions may ask `Enable all 112 tools? [Y/n/select]`; the installer
-answers that prompt and then tests the persisted server. It reports rather
-than hides a failure. This is entirely optional — Helm already works without
-Hermes.
+answers that prompt and then tests the persisted server. An attempted but
+unverified registration returns nonzero so automation cannot mistake it for
+success; standalone Helm remains installed for the printed manual recovery
+commands. The automatic path was verified with Hermes Agent `0.18.2` on
+2026-07-30. Use `--no-hermes` when you want a standalone-only install.
 
 ### Manual Hermes registration
 
 If automatic registration was skipped or did not verify, run these commands
-after replacing `/absolute/path/to/Helm` with your installation path:
+after replacing the paths with your installation and external `--state-dir`.
+For a legacy/default in-prefix install, omit the `HELM_STATE_DIR` assignment.
 
 ```sh
-hermes mcp add helm --command node --env DASHBOARD_URL=http://127.0.0.1:8787 --args /absolute/path/to/Helm/mcp/src/index.js
+hermes mcp add helm --command node --env DASHBOARD_URL=http://127.0.0.1:8787 HELM_STATE_DIR=/absolute/path/to/Helm-state --args /absolute/path/to/Helm/mcp/src/index.js
 hermes mcp test helm
 ```
 
@@ -103,7 +109,8 @@ absolute paths. Configuration-file locations differ by host.
       "command": "/absolute/path/to/node",
       "args": ["/absolute/path/to/Helm/mcp/src/index.js"],
       "env": {
-        "DASHBOARD_URL": "http://127.0.0.1:8787"
+        "DASHBOARD_URL": "http://127.0.0.1:8787",
+        "HELM_STATE_DIR": "/absolute/path/to/Helm-state"
       }
     }
   }
@@ -116,11 +123,22 @@ tools; arguments and returned records can enter the host model's context.
 
 ## OpenClaw
 
-OpenClaw's documentation for the audited `2026.3.13` release advertises an
-`mcp.servers` configuration key, but that installed CLI has no verified
-`openclaw mcp` subcommand. Do not rely on an untested command. If your exact
-OpenClaw release supports native MCP configuration, edit its documented
-`mcp.servers` setting manually using the same command, args, and environment
-shown in the generic stdio block above. Otherwise use a compatible stdio MCP
-bridge/host and point it at Helm with that block. Verify the server and tool
-list in OpenClaw before relying on it.
+The installed OpenClaw `2026.3.13` CLI was checked on 2026-07-30. It has no
+verified `openclaw mcp` subcommand or native managed-MCP registry, so do not
+copy today's rolling OpenClaw `mcp.servers` documentation into that older
+release. Its tagged source does bundle the official mcporter skill. Install
+mcporter, save the generic JSON above as `config/mcporter.json` in the
+OpenClaw agent workspace, and verify discovery from that directory:
+
+```sh
+npm install --global mcporter
+mcporter list helm --schema
+```
+
+This is a command bridge used through OpenClaw's bundled skill, not automatic
+native tool injection. The bridge was exercised with synthetic local
+credentials and discovered all 112 Helm tools. If you upgrade OpenClaw, use a
+native managed-MCP route only after that installed CLI's help lists it and its
+version-matched official documentation explains how to probe the connection.
+See [Agent integrations](AGENT-INTEGRATIONS.md) for evidence links, privacy
+boundaries, and troubleshooting.

@@ -225,13 +225,14 @@ KEY_DEST=""
 KEY_BACKUP=""
 KEY_EXISTED=0
 KEY_TOUCHED=0
+CORE_INSTALL_COMPLETE=0
 
 cleanup_install() {
   status=$?
   trap - EXIT HUP INT TERM
   rollback_failed=0
 
-  if [ "$status" -ne 0 ]; then
+  if [ "$status" -ne 0 ] && [ "$CORE_INSTALL_COMPLETE" -ne 1 ]; then
     # Never let a failed replacement keep running while its files are rolled
     # back or removed. bootout is best-effort because a crashed service may
     # already have unloaded itself.
@@ -461,6 +462,11 @@ else
   say "skipping LaunchAgent (--no-launchagent); not loading a service."
 fi
 
+# From this point onward the standalone Helm installation is complete. A
+# Hermes registration failure must return nonzero, but it must not roll back
+# the installed files that the recovery instructions reference.
+CORE_INSTALL_COMPLETE=1
+
 # ── Hermes MCP registration ────────────────────────────────────────────────
 # `hermes mcp add` (live Hermes, v0.18.2) asks interactively whether to
 # enable all discovered tools before it persists anything. Under this
@@ -478,6 +484,8 @@ if [ "$DO_HERMES" -eq 1 ]; then
     HERMES_REGISTER_JS="$(mktemp "${TMPDIR:-/tmp}/helm-hermes-register.XXXXXX.mjs")"
     cat > "$HERMES_REGISTER_JS" <<'HERMES_JS'
 import { spawn } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const [, , name, command, cmdArg, ...envAssigns] = process.argv;
 const ADD_TIMEOUT_MS = Number(process.env.HELM_HERMES_TIMEOUT_MS || 20000);
@@ -502,12 +510,49 @@ function run(args, { input, timeoutMs }) {
   });
 }
 
+async function snapshotHermesConfig() {
+  const result = await run(['config', 'path'], { timeoutMs: TEST_TIMEOUT_MS });
+  const configPath = result.out.trim().split(/\r?\n/).filter(Boolean).at(-1);
+  if (result.code !== 0 || result.timedOut || !configPath || !path.isAbsolute(configPath)) {
+    throw new Error('could not resolve the active Hermes config path before registration');
+  }
+  if (!fs.existsSync(configPath)) return { configPath, existed: false };
+  const stat = fs.statSync(configPath);
+  return { configPath, existed: true, bytes: fs.readFileSync(configPath), mode: stat.mode & 0o777 };
+}
+
+function restoreHermesConfig(snapshot) {
+  if (!snapshot.existed) {
+    fs.rmSync(snapshot.configPath, { force: true });
+    return;
+  }
+  const temp = path.join(
+    path.dirname(snapshot.configPath),
+    `.helm-config-restore-${process.pid}-${Date.now()}`,
+  );
+  try {
+    fs.writeFileSync(temp, snapshot.bytes, { mode: snapshot.mode });
+    fs.chmodSync(temp, snapshot.mode);
+    fs.renameSync(temp, snapshot.configPath);
+  } finally {
+    fs.rmSync(temp, { force: true });
+  }
+}
+
 async function main() {
   // argparse defines --args as REMAINDER, so it must be last. Putting --env
   // after it would silently turn the environment flag into a server argument.
   // Do not remove an existing registration first: discovery-first `mcp add`
   // only saves after it connects, so a timeout/cancellation leaves the known
   // working config intact.
+  let configSnapshot;
+  try {
+    configSnapshot = await snapshotHermesConfig();
+  } catch (error) {
+    process.stderr.write(`Hermes registration refused before mutation: ${error.message}\n`);
+    process.exit(1);
+  }
+
   const addArgs = ['mcp', 'add', name, '--command', command, '--env', ...envAssigns, '--args', cmdArg];
   // The first 'y' accepts replacement when this name already exists; the
   // second accepts Hermes's "Enable all N tools?" discovery prompt. On a
@@ -518,6 +563,11 @@ async function main() {
   const addText = `${add.out}\n${add.err}`;
   const saved = addText.includes(`Saved '${name}' to `);
   if (add.code !== 0 || !saved) {
+    try {
+      restoreHermesConfig(configSnapshot);
+    } catch (error) {
+      process.stderr.write(`CRITICAL: failed to restore the prior Hermes config: ${error.message}\n`);
+    }
     process.stderr.write(`hermes mcp add ${name} failed (exit ${add.code}${add.timedOut ? ', timed out' : ''}):\n${(add.err || add.out).trim()}\n`);
     process.exit(1);
   }
@@ -529,8 +579,13 @@ async function main() {
   // zero status so a persisted-but-broken registration cannot be called
   // verified.
   const verified = /✓\s*Connected\b/.test(testText)
-    && /✓\s*Tools discovered:\s*\d+\b/.test(testText);
+    && /✓\s*Tools discovered:\s*[1-9]\d*\b/.test(testText);
   if (test.code !== 0 || !verified) {
+    try {
+      restoreHermesConfig(configSnapshot);
+    } catch (error) {
+      process.stderr.write(`CRITICAL: failed to restore the prior Hermes config: ${error.message}\n`);
+    }
     process.stderr.write(`registered but \`hermes mcp test ${name}\` failed (exit ${test.code}${test.timedOut ? ', timed out' : ''}):\n${(test.err || test.out).trim()}\n`);
     process.exit(1);
   }
@@ -546,8 +601,12 @@ HERMES_JS
     else
       HERMES_STATUS="failed"
       echo "Hermes registration did not complete. Register manually, then verify:" >&2
-      echo "    hermes mcp add helm --command $NODE_BIN --env DASHBOARD_URL=$DASHBOARD_URL --args $PREFIX/mcp/src/index.js" >&2
+      printf '    hermes mcp add helm --command %q --env %q %q --args %q\n' \
+        "$NODE_BIN" "DASHBOARD_URL=$DASHBOARD_URL" "HELM_STATE_DIR=$STATE_DIR" \
+        "$PREFIX/mcp/src/index.js" >&2
       echo "    hermes mcp test helm" >&2
+      rm -f "$HERMES_REGISTER_JS"
+      exit 1
     fi
     rm -f "$HERMES_REGISTER_JS"
   else

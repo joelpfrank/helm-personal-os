@@ -51,7 +51,7 @@ while IFS= read -r f; do
   fi
   include=false
   case "$f" in
-    LICENSE|PRIVACY.md|THIRD_PARTY_LICENSES.md|package.json|package-lock.json|install-helm.sh|HERMES-INSTALL.md|scripts/create-demo-workspace.mjs|launchd/com.helm.app.plist.template|launchd/helm-launch.sh)
+    AGENT-INTEGRATIONS.md|LICENSE|PRIVACY.md|SECURITY.md|THIRD_PARTY_LICENSES.md|package.json|package-lock.json|install-helm.sh|HERMES-INSTALL.md|docs/MCP.md|scripts/create-demo-workspace.mjs|launchd/com.helm.app.plist.template|launchd/helm-launch.sh)
       include=true
       ;;
     server/*|web/*|mcp/*)
