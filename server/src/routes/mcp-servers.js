@@ -1,8 +1,7 @@
 import { Router } from 'express';
 import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { db } from '../db.js';
+import { mcpHttpTokenPath } from '../lib/state-paths.js';
 import { errors } from '../lib/errors.js';
 import { intParam, requireString, optionalString, rejectUnknownKeys } from '../lib/validate.js';
 import { BACKEND } from '../lib/llm.js';
@@ -12,14 +11,13 @@ import { slugify } from '../lib/slug.js';
 const router = Router();
 
 // Helm-as-MCP-server (OUT): the standalone MCP HTTP server (mcp/src/http.js)
-// exposes every dashboard tool at /mcp, bearer-gated by .mcp-http-token.
+// exposes every dashboard tool at /mcp, bearer-gated by .mcp-http-token
+// (state-dir contract: $HELM_STATE_DIR or the project root).
 // This surfaces the connection details to the authenticated owner.
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const MCP_TOKEN_PATH = path.resolve(__dirname, '..', '..', '..', '.mcp-http-token');
 function readMcpToken() {
   try {
     if (process.env.MCP_HTTP_TOKEN) return process.env.MCP_HTTP_TOKEN.trim();
-    return fs.readFileSync(MCP_TOKEN_PATH, 'utf8').trim();
+    return fs.readFileSync(mcpHttpTokenPath(), 'utf8').trim();
   } catch { return null; }
 }
 

@@ -36,6 +36,10 @@
     <string>http://127.0.0.1:{{PORT}}</string>
     <key>HELM_NODE_BIN</key>
     <string>{{NODE}}</string>
+    <!-- Empty when no external state dir was chosen; the server treats an
+         empty HELM_STATE_DIR as unset and keeps the legacy in-prefix layout. -->
+    <key>HELM_STATE_DIR</key>
+    <string>{{STATE_DIR}}</string>
     <key>PATH</key>
     <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
   </dict>

@@ -22,7 +22,9 @@
     "package:portable": "bash scripts/package-helm.sh",
     "demo:create": "node scripts/create-demo-workspace.mjs",
     "demo:check": "node scripts/check-demo-assets.mjs",
-    "demo:assets": "node scripts/generate-demo-assets.mjs"
+    "demo:assets": "node scripts/generate-demo-assets.mjs",
+    "convergence:verify": "node scripts/verify-convergence.mjs",
+    "migrate:state": "node scripts/migrate-state.mjs"
   },
   "engines": {
     "node": ">=20"

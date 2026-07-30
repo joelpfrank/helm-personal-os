@@ -11,20 +11,20 @@
 // it through a secure reverse proxy remain responsible for access controls.
 import crypto from 'node:crypto';
 import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 import express from 'express';
 import { rateLimit } from 'express-rate-limit';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 
 import { registerTools } from './tools.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Shared state-dir contract: mcp/ and server/ are siblings both in the repo
+// and in an installed prefix, so this relative import holds in both layouts.
+import { mcpHttpTokenPath, ensureStateDir } from '../../server/src/lib/state-paths.js';
 
 const PORT = Number(process.env.MCP_HTTP_PORT || 8788);
 const HOST = process.env.MCP_HTTP_HOST || '127.0.0.1';
-const TOKEN_PATH = path.resolve(__dirname, '..', '..', '.mcp-http-token');
+const TOKEN_PATH = mcpHttpTokenPath();
 
 function resolveToken() {
   if (process.env.MCP_HTTP_TOKEN) return process.env.MCP_HTTP_TOKEN.trim();
@@ -32,6 +32,7 @@ function resolveToken() {
     return fs.readFileSync(TOKEN_PATH, 'utf8').trim();
   }
   const generated = crypto.randomBytes(32).toString('hex');
+  ensureStateDir();
   fs.writeFileSync(TOKEN_PATH, generated + '\n', { mode: 0o600 });
   try { fs.chmodSync(TOKEN_PATH, 0o600); } catch {}
   console.error('[helm-personal-os-mcp-http] generated new token at', TOKEN_PATH);

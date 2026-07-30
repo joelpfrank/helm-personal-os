@@ -9,7 +9,8 @@ The repository currently contains:
 - goal-linked tasks, habits, food/activity records, workouts, calendar data, check-ins, memories, and custom modules;
 - a web interface, authenticated JSON API, SQLite migrations, and MCP tools;
 - optional Anthropic-backed coaching, Google Calendar sync, messaging, and scheduled-agent capabilities;
-- a macOS portable installer and publication checks that exclude operator data and credentials.
+- a macOS portable installer and publication checks that exclude operator data and credentials;
+- an optional external state-directory contract (`HELM_STATE_DIR`) that keeps the database, tokens, password, and credentials outside the replaceable code prefix, a copy-only migration utility for adopting it on an existing install, and a deterministic sandboxed convergence check that proves install-then-upgrade never rewrites external state.
 
 ## Near-term candidates
 

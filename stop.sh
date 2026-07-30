@@ -1,7 +1,12 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 
-PIDFILE="server/data/helm.pid"
+# State-dir contract: the pidfile lives wherever start.sh put it.
+if [ -n "${HELM_STATE_DIR:-}" ]; then
+  PIDFILE="$HELM_STATE_DIR/data/helm.pid"
+else
+  PIDFILE="server/data/helm.pid"
+fi
 if [ ! -f "$PIDFILE" ]; then
   echo "no pidfile; nothing to stop"
   exit 0

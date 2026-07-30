@@ -1,17 +1,13 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const PASSWORD_PATH = path.resolve(__dirname, '..', '..', '.dashboard-password');
+import { passwordFilePath, ensureStateDir } from './lib/state-paths.js';
 
 // scrypt params — N must be a power of two. 16384*8*128 ≈ 16MB, under the
 // default 32MB maxmem, so no tuning needed.
 const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 32 };
 
 export function hasPassword() {
-  return fs.existsSync(PASSWORD_PATH);
+  return fs.existsSync(passwordFilePath());
 }
 
 export function setPassword(password) {
@@ -29,6 +25,8 @@ export function setPassword(password) {
     hash: hash.toString('hex'),
     updated_at: new Date().toISOString(),
   };
+  const PASSWORD_PATH = passwordFilePath();
+  ensureStateDir();
   fs.writeFileSync(PASSWORD_PATH, JSON.stringify(record) + '\n', { mode: 0o600 });
   try { fs.chmodSync(PASSWORD_PATH, 0o600); } catch {}
 }
@@ -37,7 +35,7 @@ export function verifyPassword(password) {
   if (!hasPassword() || typeof password !== 'string') return false;
   let record;
   try {
-    record = JSON.parse(fs.readFileSync(PASSWORD_PATH, 'utf8'));
+    record = JSON.parse(fs.readFileSync(passwordFilePath(), 'utf8'));
   } catch {
     return false;
   }
@@ -50,4 +48,4 @@ export function verifyPassword(password) {
   return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
 }
 
-export function passwordPath() { return PASSWORD_PATH; }
+export function passwordPath() { return passwordFilePath(); }

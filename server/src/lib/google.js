@@ -1,18 +1,16 @@
 // Thin Google Calendar API client. Reads OAuth client creds from
-// .google-credentials.json at the project root and pulls the refresh
-// token + current access token from the calendar_settings table.
+// .google-credentials.json (state-dir contract: $HELM_STATE_DIR or the
+// project root) and pulls the refresh token + current access token from
+// the calendar_settings table.
 
 import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { db } from '../db.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const CREDS_PATH = path.resolve(__dirname, '..', '..', '..', '.google-credentials.json');
+import { googleCredentialsPath } from './state-paths.js';
 
 let cachedCreds = null;
 export function getCreds() {
   if (cachedCreds) return cachedCreds;
+  const CREDS_PATH = googleCredentialsPath();
   if (!fs.existsSync(CREDS_PATH)) {
     throw new Error(
       `.google-credentials.json not found at ${CREDS_PATH}. Add { client_id, client_secret, redirect_uri } to enable calendar.`,

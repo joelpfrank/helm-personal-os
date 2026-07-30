@@ -70,8 +70,13 @@ describe('deterministic synthetic demo workspace generator', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'helm-demo-auth-'));
     try {
       const authDir = path.join(dir, 'server', 'src');
-      fs.mkdirSync(authDir, { recursive: true });
+      const libDir = path.join(authDir, 'lib');
+      fs.mkdirSync(libDir, { recursive: true });
       fs.copyFileSync(path.join(ROOT, 'server', 'src', 'auth.js'), path.join(authDir, 'auth.js'));
+      fs.copyFileSync(
+        path.join(ROOT, 'server', 'src', 'lib', 'state-paths.js'),
+        path.join(libDir, 'state-paths.js'),
+      );
       fs.writeFileSync(path.join(dir, '.dashboard-token'), 'live-installation-token\n');
       const result = spawnSync(
         process.execPath,

@@ -8,7 +8,15 @@
 set -euo pipefail
 
 PROJECT="$(cd "$(dirname "$0")/.." && pwd)"
-KEYFILE="$PROJECT/.anthropic-key"
+
+# State-dir contract: when HELM_STATE_DIR is set (installer wires it into the
+# plist), every private runtime file — including the key — lives there instead
+# of inside the replaceable project tree.
+if [ -n "${HELM_STATE_DIR:-}" ]; then
+  KEYFILE="$HELM_STATE_DIR/.anthropic-key"
+else
+  KEYFILE="$PROJECT/.anthropic-key"
+fi
 
 if [ -f "$KEYFILE" ]; then
   ANTHROPIC_API_KEY="$(tr -d '[:space:]' < "$KEYFILE")"

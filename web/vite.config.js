@@ -6,7 +6,18 @@ import react from '@vitejs/plugin-react';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TARGET = process.env.VITE_API_TARGET || 'http://127.0.0.1:8787';
-const TOKEN_FILE = path.resolve(__dirname, '..', '.dashboard-token');
+export function dashboardTokenFile(env = process.env) {
+  const stateDir = typeof env.HELM_STATE_DIR === 'string' ? env.HELM_STATE_DIR.trim() : '';
+  if (stateDir) {
+    if (!path.isAbsolute(stateDir)) {
+      throw new Error(`HELM_STATE_DIR must be an absolute path, got: ${stateDir}`);
+    }
+    return path.resolve(stateDir, '.dashboard-token');
+  }
+  return path.resolve(__dirname, '..', '.dashboard-token');
+}
+
+const TOKEN_FILE = dashboardTokenFile();
 const DEV_TOKEN = fs.existsSync(TOKEN_FILE)
   ? fs.readFileSync(TOKEN_FILE, 'utf8').trim()
   : '';

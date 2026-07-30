@@ -1,10 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { dashboardTokenPath, ensureStateDir } from './lib/state-paths.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const TOKEN_PATH = path.resolve(__dirname, '..', '..', '.dashboard-token');
 const RUNNING_UNDER_NODE_TEST = Boolean(process.env.NODE_TEST_CONTEXT);
 
 let cachedToken = null;
@@ -12,6 +9,7 @@ let cachedTokenBuf = null;
 
 export function getToken() {
   if (cachedToken) return cachedToken;
+  const TOKEN_PATH = dashboardTokenPath();
   const ephemeralToken = RUNNING_UNDER_NODE_TEST ? process.env.DASHBOARD_TOKEN?.trim() : '';
   if (ephemeralToken) {
     cachedToken = ephemeralToken;
@@ -23,6 +21,7 @@ export function getToken() {
     cachedToken = crypto.randomBytes(32).toString('hex');
   } else {
     cachedToken = crypto.randomBytes(32).toString('hex');
+    ensureStateDir();
     fs.writeFileSync(TOKEN_PATH, cachedToken + '\n', { mode: 0o600 });
     try { fs.chmodSync(TOKEN_PATH, 0o600); } catch {}
     console.log('[auth] generated new token at', TOKEN_PATH);
@@ -31,7 +30,7 @@ export function getToken() {
   return cachedToken;
 }
 
-export function tokenPath() { return TOKEN_PATH; }
+export function tokenPath() { return dashboardTokenPath(); }
 
 // Parse an "Authorization: Bearer <token>" header without a backtracking
 // regex. The old form `/^Bearer\s+(.+)$/i` was polynomial: `\s+` and `.+`

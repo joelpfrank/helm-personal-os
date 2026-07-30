@@ -81,6 +81,7 @@ If the provider itself fails mid-conversation (expired auth, an unavailable mode
 - [MCP integration](docs/MCP.md)
 - [Known limitations](docs/KNOWN-LIMITATIONS.md)
 - [Roadmap](docs/ROADMAP.md)
+- [Maintainers](docs/MAINTAINERS.md)
 - [Privacy](PRIVACY.md)
 - [Security policy](SECURITY.md)
 - [Contributing](CONTRIBUTING.md)

@@ -1,13 +1,12 @@
 import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Shared state-dir contract: mcp/ and server/ are siblings both in the repo
+// and in an installed prefix, so this relative import holds in both layouts.
+import { dashboardTokenPath } from '../../server/src/lib/state-paths.js';
 
 function resolveToken() {
   if (process.env.DASHBOARD_TOKEN) return process.env.DASHBOARD_TOKEN.trim();
-  // Fall back to the project root's .dashboard-token (two levels up from mcp/src).
-  const tokenPath = path.resolve(__dirname, '..', '..', '.dashboard-token');
+  // Fall back to .dashboard-token ($HELM_STATE_DIR or the project root).
+  const tokenPath = dashboardTokenPath();
   if (fs.existsSync(tokenPath)) return fs.readFileSync(tokenPath, 'utf8').trim();
   throw new Error('DASHBOARD_TOKEN not set and .dashboard-token not found at ' + tokenPath);
 }

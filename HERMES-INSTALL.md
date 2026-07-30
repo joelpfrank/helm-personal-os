@@ -28,9 +28,10 @@ cd Helm
 - `npm ci`, builds the frontend, generates a **fresh token + blank database**.
 - Installs a per-user **LaunchAgent** (`com.helm.app`) bound to **127.0.0.1**
   only — nothing is exposed to your network.
-- Optionally registers the local MCP server with Hermes (`hermes mcp add helm …`)
-  when the `hermes` command is on your PATH — pass `--no-hermes` to always skip
-  this step.
+- When Hermes is on your PATH, attempts to register the local MCP server,
+  answers Hermes's tool-selection prompt, and verifies the result with
+  `hermes mcp test helm`. A failed verification is reported with manual retry
+  commands; pass `--no-hermes` to skip this optional step.
 - Verifies `/api/health` before finishing.
 
 It **won't overwrite** an existing install or data unless you pass `--upgrade`.
@@ -65,11 +66,61 @@ MCP server for you, unzip `Helm-portable.zip` and give Hermes this prompt
 
 > **"Install the Helm app from the unzipped folder. Run `./install-helm.sh`
 > inside it. It sets up a private, local-only Helm at `~/Helm`, starts it on
-> `127.0.0.1`, and registers its MCP server with you. When it's done, open the
+> `127.0.0.1`, and attempts and verifies MCP registration. When it's done, open the
 > authenticated local URL on this Mac. Do not repeat or send the private token
 > in chat."**
 
-Hermes runs the same `install-helm.sh` installer non-interactively, then
-registers a `helm` MCP server in your Hermes tools (skippable with
-`--no-hermes`). This is entirely optional — everything above already works
-without it.
+Hermes runs the same `install-helm.sh` installer non-interactively. Current
+Hermes versions may ask `Enable all 112 tools? [Y/n/select]`; the installer
+answers that prompt and then tests the persisted server. It reports rather
+than hides a failure. This is entirely optional — Helm already works without
+Hermes.
+
+### Manual Hermes registration
+
+If automatic registration was skipped or did not verify, run these commands
+after replacing `/absolute/path/to/Helm` with your installation path:
+
+```sh
+hermes mcp add helm --command node --env DASHBOARD_URL=http://127.0.0.1:8787 --args /absolute/path/to/Helm/mcp/src/index.js
+hermes mcp test helm
+```
+
+Accept the `Enable all 112 tools?` prompt. The final command must report a
+successful connection and discovered tools. These commands contain no Helm
+token: the local adapter reads its token from the installation at runtime.
+
+## Generic MCP hosts
+
+For desktop agents and editors that support the common `mcpServers` stdio
+format, add this block to that host's MCP configuration and replace the two
+absolute paths. Configuration-file locations differ by host.
+
+```json
+{
+  "mcpServers": {
+    "helm": {
+      "command": "/absolute/path/to/node",
+      "args": ["/absolute/path/to/Helm/mcp/src/index.js"],
+      "env": {
+        "DASHBOARD_URL": "http://127.0.0.1:8787"
+      }
+    }
+  }
+}
+```
+
+Restart or reload the host, confirm the `helm` server connects, and inspect
+its discovered tools before making changes. The stdio adapter exposes all Helm
+tools; arguments and returned records can enter the host model's context.
+
+## OpenClaw
+
+OpenClaw's documentation for the audited `2026.3.13` release advertises an
+`mcp.servers` configuration key, but that installed CLI has no verified
+`openclaw mcp` subcommand. Do not rely on an untested command. If your exact
+OpenClaw release supports native MCP configuration, edit its documented
+`mcp.servers` setting manually using the same command, args, and environment
+shown in the generic stdio block above. Otherwise use a compatible stdio MCP
+bridge/host and point it at Helm with that block. Verify the server and tool
+list in OpenClaw before relying on it.

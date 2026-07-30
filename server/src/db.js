@@ -2,17 +2,17 @@ import Database from 'better-sqlite3';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { dbPath as resolveDbPath, ensureStateDir } from './lib/state-paths.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const DB_DIR = path.resolve(__dirname, '..', 'data');
 // DASHBOARD_DB_PATH lets a throwaway/test instance point at an isolated DB so
-// it never touches the live one. Unset in production → same default path.
-const DB_PATH = process.env.DASHBOARD_DB_PATH
-  ? path.resolve(process.env.DASHBOARD_DB_PATH)
-  : path.join(DB_DIR, 'dashboard.db');
+// it never touches the live one. Otherwise the state-dir contract decides:
+// $HELM_STATE_DIR/data/dashboard.db when set, server/data/dashboard.db when not.
+const DB_PATH = resolveDbPath();
 const MIGRATIONS_DIR = path.join(__dirname, 'migrations');
 
+ensureStateDir();
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 
 export const db = new Database(DB_PATH);

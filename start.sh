@@ -3,11 +3,19 @@
 set -e
 cd "$(dirname "$0")"
 
-mkdir -p server/data
 chmod 700 . 2>/dev/null || true
 
-PIDFILE="server/data/helm.pid"
-LOGFILE="server/data/helm.log"
+# State-dir contract: runtime pid/log follow the database. An empty
+# HELM_STATE_DIR means the legacy in-repo layout.
+if [ -n "${HELM_STATE_DIR:-}" ]; then
+  RUN_DIR="$HELM_STATE_DIR/data"
+else
+  RUN_DIR="server/data"
+fi
+mkdir -p "$RUN_DIR"
+
+PIDFILE="$RUN_DIR/helm.pid"
+LOGFILE="$RUN_DIR/helm.log"
 
 if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
   echo "Helm already running (pid $(cat "$PIDFILE"))"
