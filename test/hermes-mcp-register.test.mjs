@@ -94,6 +94,57 @@ describe('install-helm.sh Hermes registration against a realistic v0.18.2-style 
     assert.ok(registry.helm.args[0].endsWith('mcp/src/index.js'));
   });
 
+  it('replaces an existing persisted registration with this install instead of testing the stale server', () => {
+    const prefix = path.join(TMP, 'app-replace-existing');
+    const stateDir = path.join(TMP, 'external-state-replace-existing');
+    const stateFile = path.join(TMP, 'registry-replace-existing.json');
+    fs.writeFileSync(stateFile, JSON.stringify({
+      helm: {
+        command: '/previous/node',
+        args: ['/previous/helm/mcp/src/index.js'],
+        env: { DASHBOARD_URL: 'http://127.0.0.1:7777' },
+        tools: 112,
+      },
+    }));
+
+    const res = runInstaller(['--prefix', prefix, '--state-dir', stateDir], {
+      mode: 'normal', stateFile,
+    });
+
+    assert.equal(res.status, 0, res.stdout + res.stderr);
+    const registry = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+    assert.equal(registry.helm.command, process.execPath);
+    assert.deepEqual(registry.helm.args, [path.join(prefix, 'mcp', 'src', 'index.js')]);
+    assert.equal(registry.helm.env.HELM_STATE_DIR, stateDir);
+    assert.match(res.stdout, /registered and verified/i);
+  });
+
+  it('rejects a zero-exit overwrite cancellation instead of verifying the stale registration', () => {
+    const prefix = path.join(TMP, 'app-overwrite-cancel');
+    const stateDir = path.join(TMP, 'external-state-overwrite-cancel');
+    const stateFile = path.join(TMP, 'registry-overwrite-cancel.json');
+    const prior = {
+      helm: {
+        command: '/previous/node',
+        args: ['/previous/helm/mcp/src/index.js'],
+        env: { DASHBOARD_URL: 'http://127.0.0.1:7777' },
+        tools: 112,
+      },
+    };
+    fs.writeFileSync(stateFile, JSON.stringify(prior));
+
+    const res = runInstaller(['--prefix', prefix, '--state-dir', stateDir], {
+      mode: 'overwrite_cancel', stateFile,
+    });
+
+    assert.equal(res.status, 0, 'optional Hermes registration must not fail the Helm install');
+    assert.doesNotMatch(res.stdout, /registered and verified/i,
+      'a stale server must never satisfy replacement verification');
+    assert.match(res.stdout + res.stderr, /registration did not complete|mcp add helm failed/i);
+    assert.deepEqual(JSON.parse(fs.readFileSync(stateFile, 'utf8')), prior,
+      'cancelled replacement must preserve the prior working registration');
+  });
+
   it('never hangs when the CLI prints the prompt and never responds, and reports failure truthfully', () => {
     const prefix = path.join(TMP, 'app-hang');
     const stateFile = path.join(TMP, 'registry-hang.json');

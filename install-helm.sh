@@ -509,10 +509,15 @@ async function main() {
   // only saves after it connects, so a timeout/cancellation leaves the known
   // working config intact.
   const addArgs = ['mcp', 'add', name, '--command', command, '--env', ...envAssigns, '--args', cmdArg];
-  // 'y\n' answers Hermes's "Enable all N tools? [Y/n/select]" prompt. A CLI
-  // that doesn't ask (older/newer builds) just never reads it.
-  const add = await run(addArgs, { input: 'y\n', timeoutMs: ADD_TIMEOUT_MS });
-  if (add.code !== 0) {
+  // The first 'y' accepts replacement when this name already exists; the
+  // second accepts Hermes's "Enable all N tools?" discovery prompt. On a
+  // fresh registration there is only one prompt and the extra buffered line
+  // is harmless. Hermes handlers may return zero after cancellation, so also
+  // require the semantic marker proving the replacement was actually saved.
+  const add = await run(addArgs, { input: 'y\ny\n', timeoutMs: ADD_TIMEOUT_MS });
+  const addText = `${add.out}\n${add.err}`;
+  const saved = addText.includes(`Saved '${name}' to `);
+  if (add.code !== 0 || !saved) {
     process.stderr.write(`hermes mcp add ${name} failed (exit ${add.code}${add.timedOut ? ', timed out' : ''}):\n${(add.err || add.out).trim()}\n`);
     process.exit(1);
   }

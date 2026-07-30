@@ -17,6 +17,8 @@
 //   test_fails  - `mcp add` behaves like normal, but `mcp test` prints a
 //                 connection failure while exiting zero, matching Hermes
 //                 v0.18.2's misleading process status.
+//   overwrite_cancel - an existing registration survives while `mcp add`
+//                 misleadingly exits zero without printing the save marker.
 import fs from 'node:fs';
 
 const MODE = process.env.FAKE_HERMES_MODE || 'normal';
@@ -67,7 +69,7 @@ function persistAndReportAdded(name, spec) {
   const reg = readRegistry();
   reg[name] = { ...spec, tools: 112, testFails: MODE === 'test_fails' };
   writeRegistry(reg);
-  process.stdout.write(`Added MCP server "${name}" (112 tools enabled)\n`);
+  process.stdout.write(`Saved '${name}' to fake/config.yaml (112/112 tools enabled)\n`);
   process.exit(0);
 }
 
@@ -86,6 +88,32 @@ if (sub === 'remove') {
   process.exit(0);
 } else if (sub === 'add') {
   const spec = parseAddArgs(rest);
+
+  // Live Hermes asks a separate overwrite question before discovery when the
+  // name already exists. Both confirmations are required; cancelling either
+  // returns success from the CLI command handler but leaves the old config in
+  // place. This is the upgrade case the installer must distinguish from a
+  // genuinely persisted replacement.
+  if ((MODE === 'normal' || MODE === 'overwrite_cancel') && readRegistry()[spec.name]) {
+    process.stdout.write(`Server '${spec.name}' already exists. Overwrite? [y/N] `);
+    const rawAnswers = fs.readFileSync(0, 'utf8');
+    const answers = rawAnswers.split('\n').map((s) => s.trim().toLowerCase());
+    if (!['y', 'yes'].includes(answers[0])) {
+      process.stdout.write('Cancelled.\n');
+      process.exit(0);
+    }
+    process.stdout.write('Enable all 112 tools? [Y/n/select] ');
+    if (MODE === 'overwrite_cancel') {
+      process.stdout.write('Cancelled.\n');
+      process.exit(0);
+    }
+    const secondPromptWasAnswered = rawAnswers.split('\n').length >= 3 || Boolean(answers[1]);
+    if (secondPromptWasAnswered && (answers[1] === '' || ['y', 'yes'].includes(answers[1]))) {
+      persistAndReportAdded(spec.name, spec);
+    }
+    process.stdout.write('Cancelled.\n');
+    process.exit(0);
+  }
 
   if (MODE === 'no_prompt') {
     persistAndReportAdded(spec.name, spec);
