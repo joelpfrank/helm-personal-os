@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.dashboard-token
+.mcp-http-token
+.helm-private-patterns
+.google-credentials.json
+.anthropic-key
+server/data/
+backups/
+web/dist/
+*.log
+.DS_Store
+.env
+.env.local
+
+.dashboard-password

@@ -1,0 +1,331 @@
+/* Quiet Instrument — Coach lane. Loaded by CoachHubView so integration needs no shell wiring. */
+.coach-hub {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: var(--canvas);
+}
+
+.coach-tabs {
+  min-height: 52px;
+  padding: 7px var(--space-3);
+  gap: 2px;
+  align-items: center;
+  background: var(--canvas);
+  border-bottom: 1px solid var(--line);
+}
+
+.coach-tab {
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: var(--radius-control);
+  font-size: var(--text-meta);
+  color: var(--ink-muted);
+  box-shadow: none;
+}
+
+.coach-tab:hover { background: var(--surface-secondary); box-shadow: none; }
+.coach-hub .coach-tab.on,
+.coach-tab[aria-selected="true"] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+}
+
+.coach-hub-body { min-width: 0; min-height: 0; overflow: hidden; }
+.today-kicker {
+  color: var(--action);
+  font-size: 11px;
+  font-weight: 720;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+/* Today: Monitor first, Decide second. */
+.today-view {
+  max-width: 1240px;
+  padding: var(--space-3) clamp(18px, 3vw, 40px) 48px;
+  gap: var(--space-3);
+}
+
+.today-header { max-width: 820px; }
+.today-header h1 { margin: 0; font-size: clamp(28px, 3vw, 38px); }
+.today-identity {
+  max-width: 720px;
+  margin-top: var(--space-1);
+  font-family: var(--font-reflective);
+  font-size: 17px;
+  font-style: normal;
+  line-height: 1.55;
+}
+
+.today-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+  gap: clamp(24px, 4vw, 48px);
+  align-items: start;
+}
+.today-main { min-width: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.today-now {
+  min-height: 236px;
+  padding: clamp(24px, 4vw, 40px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-focal);
+  box-shadow: var(--elevation-1);
+}
+.today-now article { display: contents; }
+.today-now h2 { max-width: 680px; margin: 12px 0 8px; font-size: clamp(25px, 3vw, 34px); line-height: 1.12; }
+.today-now p { max-width: 620px; margin: 0; font-size: 16px; }
+.today-now-action { margin-top: var(--space-3); min-height: 44px; padding-inline: 20px; }
+
+.today-quick-capture {
+  display: grid;
+  grid-template-columns: minmax(120px, 150px) minmax(0, 1fr);
+  gap: 6px var(--space-2);
+  align-items: start;
+  padding: var(--space-2) 0;
+  border-block: 1px solid var(--line);
+}
+.today-quick-capture label { padding-top: 11px; font-size: var(--text-meta); font-weight: 650; }
+.today-quick-capture textarea {
+  min-height: 66px;
+  padding: 11px 12px;
+  border-radius: var(--radius-control);
+  box-shadow: none;
+  resize: vertical;
+}
+.today-quick-capture > span { grid-column: 2; }
+
+.today-evidence { min-width: 0; }
+.today-evidence > h2 { margin: 5px 0 var(--space-2); font-size: 20px; }
+.today-columns {
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr);
+  gap: 0 var(--space-3);
+  border-top: 1px solid var(--line);
+}
+.today-view .today-col {
+  padding: var(--space-2) 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+}
+.today-view .today-goals { grid-row: span 2; padding-right: var(--space-3); border-right: 1px solid var(--line); }
+.today-col h3 { font-size: var(--text-meta); letter-spacing: .01em; }
+.today-goal-row,
+.today-habit-row,
+.today-reflection-row { min-height: 38px; font-size: var(--text-meta); }
+.today-goal-horizon {
+  min-width: 54px;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  color: var(--ink-muted);
+  font-size: 10px;
+  font-weight: 680;
+}
+.today-habit-row.done { opacity: .62; text-decoration: none; }
+
+.today-rhythm {
+  position: sticky;
+  top: var(--space-2);
+  padding-top: var(--space-1);
+}
+.today-rhythm > h2 { margin: 5px 0 var(--space-2); font-size: 20px; }
+.today-rhythm .today-cadence-card {
+  padding: var(--space-2) 0;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+}
+.today-rhythm .today-cadence-card:hover { transform: none; box-shadow: none; }
+.today-rhythm .cadence-title { font-size: var(--text-meta); }
+.today-rhythm .cadence-cta { align-self: flex-start; margin: 3px 0 0; min-height: 32px; text-decoration: none; }
+
+/* Coach: Command / Inspect. */
+.chat-view { background: var(--canvas); }
+.chat-header { min-height: 52px; padding-inline: var(--space-2); background: var(--canvas); }
+.chat-main { background: var(--canvas); }
+.coach-command-context {
+  padding: 9px var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+.coach-readiness { flex: none; display: inline-flex; align-items: center; gap: 7px; font-weight: 650; }
+.coach-readiness > span { width: 7px; height: 7px; border-radius: 50%; background: var(--warning); }
+.coach-readiness.is-ready > span { background: var(--success); }
+.coach-boundary { color: var(--ink-muted); }
+.coach-boundary strong { color: var(--ink); }
+.chat-crisis-note { padding: 5px var(--space-2); font-size: 11px; background: var(--canvas); }
+.chat-transcript { padding: clamp(20px, 4vw, 48px); gap: var(--space-3); }
+.chat-transcript > * { width: min(100%, 760px); }
+.chat-transcript .chat-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: auto;
+  text-align: left;
+}
+.chat-transcript .chat-empty ul { margin: 0 !important; padding-left: 20px; }
+.msg-user { border: 0; background: var(--action-soft); }
+.msg-assistant { line-height: 1.6; }
+.chat-composer { padding: 14px clamp(16px, 4vw, 48px); background: var(--surface); }
+.tool-call { border-radius: var(--radius-control); background: var(--surface-secondary); box-shadow: none; }
+.tool-call.pending { border-color: var(--warning); }
+.tool-call.done { border-color: var(--line); }
+
+/* Vision and Goals: Decide / Inspect. */
+.vision-panel,
+.goals-tree,
+.checkin-history {
+  width: min(100%, 940px);
+  max-width: none;
+  min-height: 0;
+  margin: 0 auto;
+  padding: clamp(24px, 4vw, 48px);
+  overflow-y: auto;
+}
+.vision-lead,
+.goals-intro,
+.checkins-intro { max-width: 680px; }
+.vision-lead h3,
+.goals-intro h3,
+.checkins-intro h3 {
+  margin: 7px 0 6px;
+  font-family: var(--font-reflective);
+  font-size: clamp(30px, 4vw, 42px);
+  font-weight: 500;
+  line-height: 1.08;
+}
+.vision-lead p,
+.goals-intro p,
+.checkins-intro p { margin: 0; color: var(--ink-muted); font-size: 16px; }
+.vision-review {
+  padding: var(--space-2) 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  border-block: 1px solid var(--line);
+}
+.vision-panel .vision-field {
+  padding: var(--space-2) 0 var(--space-3);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+}
+.vision-panel .vision-field:first-of-type .vision-field-value { font-family: var(--font-reflective); font-size: 20px; line-height: 1.55; }
+.vision-field-head button { min-width: 44px; min-height: 36px; border: 0; background: transparent; box-shadow: none; }
+
+.goals-toolbar,
+.checkin-toolbar { min-height: 52px; padding-block: var(--space-2); border-bottom: 1px solid var(--line); }
+.goal-list { gap: 0; }
+.goals-tree .goal-card {
+  padding: var(--space-2) 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+}
+.goal-card-head { min-height: 44px; }
+.goal-toggle { width: 36px; height: 36px; border-radius: var(--radius-control); }
+.goal-title { font-size: 16px; }
+.goal-path { color: var(--ink-muted); font-size: 11px; white-space: nowrap; }
+.goal-card-body { margin-left: 44px; padding: var(--space-2) 0; }
+.goal-children { padding-left: var(--space-2); border-left: 1px solid var(--line); }
+.goal-complete,
+.goal-delete { width: 36px; height: 36px; }
+
+/* Check-ins: interpretation collapsed, stored evidence inspectable. */
+.checkin-list { gap: 0; }
+.checkin-history .checkin-card {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
+}
+.checkin-head {
+  min-height: 64px;
+  padding: var(--space-2) 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  list-style: none;
+}
+.checkin-head::-webkit-details-marker { display: none; }
+.checkin-head > span { display: flex; flex-direction: column; gap: 2px; }
+.checkin-head::after { content: '+'; margin-left: var(--space-1); color: var(--ink-muted); font-size: 18px; }
+.checkin-card[open] .checkin-head::after { content: '−'; }
+.checkin-summary { max-width: 700px; padding: 0 4px var(--space-2); line-height: 1.6; }
+.checkin-record { padding: var(--space-2); background: var(--surface-secondary); border-radius: var(--radius-control); margin-bottom: var(--space-2); }
+.checkin-payload { margin: 7px 0 0; padding: 0; background: transparent; border: 0; font-size: 12px; }
+
+@media (max-width: 900px) {
+  .today-layout { grid-template-columns: minmax(0, 1fr); }
+  .today-rhythm { position: static; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--space-2); }
+  .today-rhythm > .today-kicker,
+  .today-rhythm > h2 { grid-column: 1 / -1; }
+}
+
+@media (max-width: 720px) {
+  .coach-tabs { min-height: 50px; padding: 3px var(--space-1); }
+  .coach-tab { min-height: 44px; padding-inline: 13px; }
+  .today-view { padding: var(--space-2); gap: var(--space-2); }
+  .today-now { min-height: 210px; padding: var(--space-3); }
+  .today-quick-capture { grid-template-columns: 1fr; }
+  .today-quick-capture > span { grid-column: 1; }
+  .today-columns { grid-template-columns: 1fr; }
+  .today-view .today-goals { grid-row: auto; padding-right: 0; border-right: 0; }
+  .today-rhythm { grid-template-columns: 1fr; }
+  /* Coach on a phone: the preamble above the transcript (hint, readiness,
+     interpretation note, crisis notice) used to eat most of the viewport and
+     leave the examples floating in dead space. Everything below tightens that
+     preamble and pins the examples to the top of the transcript instead of
+     centring them. All four notices stay present and readable — the safety
+     copy is only visually tighter, never removed or truncated. */
+  .chat-header { min-height: 44px; }
+  .coach-command-context { align-items: flex-start; flex-direction: column; gap: 2px; padding: 6px var(--space-2); font-size: 11px; }
+  .coach-boundary { line-height: 1.35; }
+  .chat-crisis-note { padding: 5px var(--space-2) 6px; line-height: 1.35; }
+  .chat-transcript { padding: var(--space-2); }
+  .chat-transcript .chat-empty { margin: 0; gap: var(--space-1); padding-block: var(--space-1); }
+  .chat-transcript .chat-empty ul { line-height: 1.5; }
+  .vision-panel,
+  .goals-tree,
+  .checkin-history { padding: var(--space-3) var(--space-2) 48px; }
+  .vision-review { align-items: flex-start; flex-direction: column; }
+  .goals-toolbar { align-items: flex-start; flex-wrap: wrap; }
+  .goal-card-head { flex-wrap: wrap; }
+  .goal-title { flex-basis: calc(100% - 48px); }
+  .goal-path { margin-left: 44px; }
+  .goal-card-body { margin-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coach-hub *,
+  .coach-hub *::before,
+  .coach-hub *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}

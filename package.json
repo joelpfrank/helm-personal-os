@@ -1,0 +1,37 @@
+{
+  "name": "helm-personal-os",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Local-first personal operating system with goal-aligned tasks, habits, health tracking, check-ins, and evidence-grounded AI coaching.",
+  "license": "MIT",
+  "workspaces": [
+    "server",
+    "web",
+    "mcp"
+  ],
+  "scripts": {
+    "dev:server": "npm run dev -w helm-personal-os-server",
+    "dev:web": "npm run dev -w helm-personal-os-web",
+    "build:web": "npm run build -w helm-personal-os-web",
+    "build": "npm run build:web",
+    "start": "node server/src/index.js",
+    "test": "node --test --test-concurrency=1 test/*.test.mjs",
+    "check": "npm run test && npm run build && npm run demo:check && node scripts/check-public-safety.mjs && node scripts/check-public-safety.mjs --history && node scripts/scan-secrets.mjs && npm audit --omit=dev --audit-level=high",
+    "security:gitleaks": "gitleaks git --redact --no-banner .",
+    "security:scan-history": "node scripts/scan-secrets.mjs --history",
+    "privacy:scan-history": "node scripts/check-public-safety.mjs --history",
+    "package:portable": "bash scripts/package-helm.sh",
+    "demo:create": "node scripts/create-demo-workspace.mjs",
+    "demo:check": "node scripts/check-demo-assets.mjs",
+    "demo:assets": "node scripts/generate-demo-assets.mjs",
+    "demo:verify-determinism": "node scripts/verify-demo-asset-determinism.mjs",
+    "convergence:verify": "node scripts/verify-convergence.mjs",
+    "migrate:state": "node scripts/migrate-state.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "yaml": "^2.9.0"
+  }
+}

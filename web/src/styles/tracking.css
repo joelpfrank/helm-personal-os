@@ -1,0 +1,139 @@
+.tracking-surface {
+  min-width: 0;
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--canvas);
+}
+
+.tracking-page-header {
+  padding: var(--space-3) var(--space-4) var(--space-2);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.tracking-kicker {
+  margin-bottom: 4px;
+  color: var(--action);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.tracking-page-heading {
+  margin: 0;
+  color: var(--ink);
+  font-size: 28px;
+  line-height: 1.12;
+  letter-spacing: -.03em;
+}
+
+.tracking-page-summary { margin: 6px 0 0; color: var(--ink-muted); font-size: var(--text-meta); }
+.tracking-primary-action { min-height: 40px; padding-inline: 18px; }
+.tracking-toolbar { min-height: 52px; padding: 6px var(--space-4) 10px; display: flex; align-items: center; gap: var(--space-1); }
+
+.tracking-tasks { overflow: hidden; }
+.tracking-board-scroll { overflow-x: auto; overflow-y: hidden; padding: 0 var(--space-4) var(--space-3); scroll-padding-inline: var(--space-4); }
+.tracking-tasks .board { gap: var(--space-2); padding: 0; }
+.tracking-tasks .column { width: 292px; min-width: 292px; border: 1px solid var(--line); border-radius: var(--radius-group); background: color-mix(in srgb, var(--surface-secondary) 68%, transparent); box-shadow: none; }
+.tracking-tasks .column-header { min-height: 48px; padding-inline: var(--space-1-5); }
+.tracking-tasks .column-name { font-size: var(--text-meta); font-weight: 700; }
+.tracking-tasks .column-count { min-width: 24px; color: var(--ink-muted); font-variant-numeric: tabular-nums; }
+.tracking-tasks .column-cards { padding: 0 var(--space-1) var(--space-1); gap: var(--space-1); }
+.tracking-tasks .card { position: relative; padding: 12px; border-color: var(--line); background: var(--surface); box-shadow: 0 1px 1px rgba(28,32,28,.04); }
+.tracking-tasks .card:hover { border-color: color-mix(in srgb, var(--action) 32%, var(--line)); transform: translateY(-1px); }
+.tracking-tasks .card:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.tracking-tasks .card-title { display: flex; align-items: flex-start; gap: 8px; }
+.task-color-mark { width: 7px; height: 7px; margin-top: .48em; flex: none; border-radius: 50%; background: var(--task-mark); }
+.tracking-tasks .column-empty { min-height: 92px; display: grid; place-content: center; gap: 3px; padding: 16px; border: 1px dashed var(--line); border-radius: var(--radius-control); color: var(--ink-muted); text-align: center; font-size: var(--text-meta); }
+.tracking-tasks .column-empty strong { color: var(--ink); font-weight: 600; }
+.tracking-tasks .column-empty span { max-width: 190px; }
+.tracking-empty { margin: auto; min-height: 180px; display: grid; place-content: center; gap: 5px; color: var(--ink-muted); text-align: center; }
+.tracking-empty strong { color: var(--ink); font-size: 18px; }
+
+.tracking-habits .habits-page-header { align-items: center; }
+.habit-header-actions { display: flex; align-items: center; gap: var(--space-2); }
+.habit-day-progress { position: relative; min-width: 150px; padding: 8px 0 10px; display: flex; align-items: baseline; gap: 5px; color: var(--ink-muted); font-size: var(--text-meta); overflow: hidden; }
+.habit-day-progress strong { color: var(--ink); font-size: 20px; font-variant-numeric: tabular-nums; }
+.habit-day-progress i { position: absolute; inset: auto 0 0; height: 3px; border-radius: 999px; background: linear-gradient(to right, var(--success) var(--habit-day-progress), var(--line) var(--habit-day-progress)); }
+.tracking-habits .habits-toolbar { border: 0; background: transparent; }
+.tracking-habits .habits-tabs { padding: 3px; border-radius: 10px; background: var(--surface-secondary); }
+.tracking-habits .habits-tabs button { min-height: 36px; border: 0; border-radius: var(--radius-control); background: transparent; box-shadow: none; }
+.tracking-habits .habits-tabs button.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
+.tracking-habits .habits-list { width: min(100%, 840px); margin: 0 auto; padding: var(--space-1) var(--space-4) var(--space-4); gap: var(--space-1); }
+.tracking-habits .habit-row { border: 1px solid var(--line); border-radius: var(--radius-group); background: var(--surface); box-shadow: none; }
+.tracking-habits .habit-row:hover { border-color: color-mix(in srgb, var(--habit-mark) 36%, var(--line)); background: var(--surface); box-shadow: var(--elevation-1); }
+.tracking-habits .habit-row-open { min-width: 0; padding: 0; border: 0; border-radius: var(--radius-control); background: transparent; color: inherit; box-shadow: none; text-align: left; }
+.tracking-habits .habit-row-open:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.tracking-habits .habit-row.done { opacity: 1; }
+.tracking-habits .habit-row.done .habit-row-name { text-decoration: none; color: var(--ink-muted); }
+.habit-state-mark { width: 8px; height: 8px; flex: none; border: 2px solid var(--habit-mark); border-radius: 50%; }
+.habit-row.done .habit-state-mark { border-color: var(--success); background: var(--success); }
+.habit-row.failed .habit-state-mark { border-color: var(--warning); background: transparent; }
+
+.tracking-food .food-toolbar { border: 0; background: transparent; }
+.tracking-food .food-tabs { padding: 3px; border-radius: 10px; background: var(--surface-secondary); }
+.tracking-food .food-tabs button { min-height: 36px; border: 0; border-radius: var(--radius-control); background: transparent; box-shadow: none; text-transform: capitalize; }
+.tracking-food .food-tabs button.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
+.tracking-food .food-body { padding: 0 var(--space-4) var(--space-4); }
+.tracking-food .food-today { width: min(100%, 920px); max-width: none; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(260px, .85fr); align-items: start; gap: var(--space-2) var(--space-3); }
+.tracking-food .food-day-header { grid-column: 1 / -1; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; box-shadow: none; }
+.tracking-food .macro-bars { grid-column: 2; grid-row: 2 / span 3; border: 1px solid var(--line); background: var(--surface); box-shadow: none; }
+.tracking-food .food-section-heading, .tracking-food .meal-list, .tracking-food .meal-composer-trigger, .tracking-food .meal-composer, .tracking-food .center-pad { grid-column: 1; }
+.tracking-food .meal-row, .tracking-food .meal-composer { border-color: var(--line); background: var(--surface); box-shadow: none; }
+.tracking-food .meal-composer-trigger { min-height: 44px; border-style: dashed; background: transparent; color: var(--action); }
+
+.tracking-workouts .workouts-page-header { align-items: center; }
+.tracking-workouts .workouts-toolbar { border: 0; background: transparent; }
+.tracking-workouts .workouts-tabs { padding: 3px; border-radius: 10px; background: var(--surface-secondary); }
+.tracking-workouts .workouts-tabs button { min-height: 36px; border: 0; border-radius: var(--radius-control); background: transparent; box-shadow: none; }
+.tracking-workouts .workouts-tabs button.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
+.tracking-workouts .workouts-body { overflow-y: auto; padding: 0 var(--space-4) var(--space-4); }
+.tracking-workouts .active-workout { width: min(100%, 980px); margin: 0 auto; padding: 0; gap: var(--space-2); }
+.tracking-workouts .active-header { padding: var(--space-2) 0; border-bottom: 1px solid var(--line); }
+.active-session-meta { display: flex; align-items: baseline; gap: var(--space-1); }
+.active-progress { color: var(--action); font-size: var(--text-meta); font-weight: 650; }
+.tracking-workouts .rest-timer { border: 1px solid var(--line); border-radius: var(--radius-group); background: var(--surface); box-shadow: none; }
+.tracking-workouts .workout-exercise-card { border-color: var(--line); border-radius: var(--radius-group); background: var(--surface); box-shadow: none; }
+.tracking-workouts .set-row.completed { background: var(--action-soft); }
+.tracking-workouts .set-check { min-width: 44px; min-height: 44px; }
+.tracking-workouts .history-list, .tracking-workouts .routines-list, .tracking-workouts .exercises-list { width: min(100%, 820px); margin: 0 auto; }
+
+@media (max-width: 720px) {
+  .tracking-surface button { min-width: 44px; min-height: 44px; }
+  .tracking-habits .habits-tabs button,
+  .tracking-food .food-tabs button,
+  .tracking-workouts .workouts-tabs button { min-height: 44px; }
+  .tracking-page-header { padding: var(--space-2) var(--space-2) var(--space-1); align-items: center; }
+  .tracking-page-heading { font-size: 23px; }
+  .tracking-page-summary { display: none; }
+  .tracking-primary-action { min-height: 44px; }
+  .tracking-toolbar { min-height: 52px; padding: 4px var(--space-2) var(--space-1); overflow-x: auto; }
+  .tracking-board-scroll { padding: 0 var(--space-2) var(--space-2); }
+  .tracking-tasks .column { width: min(82vw, 320px); min-width: min(82vw, 320px); max-width: none; }
+  .habit-header-actions { gap: var(--space-1); }
+  .habit-day-progress { min-width: auto; }
+  .habit-day-progress span { display: none; }
+  .tracking-habits .habits-list { padding: var(--space-1) var(--space-2) var(--space-2); }
+  .tracking-habits .habit-row { padding: 10px; }
+  .tracking-food .food-body { padding: 0 var(--space-2) var(--space-2); }
+  .tracking-food .food-today { display: flex; }
+  .tracking-food .macro-bars { width: 100%; }
+  .tracking-food .food-day-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tracking-workouts .workouts-body { padding: 0 var(--space-2) var(--space-2); }
+  .tracking-workouts .active-workout { padding: 0; }
+  .active-session-meta { align-items: flex-start; flex-direction: column; gap: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tracking-surface *, .tracking-surface *::before, .tracking-surface *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

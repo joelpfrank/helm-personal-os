@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#f4f5f6" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=helm2" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=helm2" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152.png?v=helm2" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167.png?v=helm2" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=helm2" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Helm" />
+    <title>Helm</title>
+    <script>
+      // Apply the persisted appearance before React mounts to avoid a flash.
+      // Must stay in step with web/src/lib/theme.js: 'system' is the default,
+      // and the resolved light/dark scheme drives both attributes.
+      try {
+        var CANVAS = {
+          neutral: { light: '#f4f5f6', dark: '#131519' },
+          rose:    { light: '#fff5fa', dark: '#1a1016' }
+        };
+        var stored = localStorage.getItem('dashboard_theme');
+        var theme = ['system', 'light', 'dark'].indexOf(stored) === -1 ? 'system' : stored;
+        var palette = localStorage.getItem('helm_palette');
+        if (['neutral', 'rose'].indexOf(palette) === -1) palette = 'neutral';
+        var scheme = theme === 'system'
+          ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : theme;
+        var root = document.documentElement;
+        root.setAttribute('data-theme', scheme);
+        root.setAttribute('data-color-scheme', scheme);
+        root.setAttribute('data-palette', palette);
+        root.style.colorScheme = scheme;
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', CANVAS[palette][scheme]);
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

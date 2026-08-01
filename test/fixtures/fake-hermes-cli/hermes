@@ -1,0 +1,185 @@
+#!/usr/bin/env node
+// Realistic fake of the live Hermes v0.18.2 CLI surface used by
+// install-helm.sh: `hermes mcp remove NAME`, `hermes mcp add NAME --command
+// CMD --env KEY=VAL --args ARG`, and `hermes mcp test NAME`. Persists a tiny
+// JSON registry at FAKE_HERMES_STATE so tests can assert on what actually
+// got registered, independent of anything install-helm.sh prints.
+//
+// FAKE_HERMES_MODE selects behavior:
+//   normal      - real v0.18.2 behavior: `mcp add` prints
+//                 "Enable all 112 tools? [Y/n/select] " and blocks on stdin;
+//                 y/Y/empty persists and reports 112 tools, anything else
+//                 (including EOF-with-no-answer) cancels without persisting.
+//   hang        - prints the prompt and then never reads stdin or exits, to
+//                 exercise the caller's own bounded timeout.
+//   no_prompt   - persists immediately with no tool-selection prompt at all,
+//                 simulating a Hermes build that never asks.
+//   test_fails  - `mcp add` behaves like normal, but `mcp test` prints a
+//                 connection failure while exiting zero, matching Hermes
+//                 v0.18.2's misleading process status.
+//   test_hang   - `mcp add` persists, then `mcp test` never exits.
+//   zero_tools  - `mcp add` persists, then `mcp test` reports zero tools.
+//   config_path_unsupported - the CLI lacks the config-path capability used
+//                 for fail-closed registration rollback.
+//   overwrite_cancel - an existing registration survives while `mcp add`
+//                 misleadingly exits zero without printing the save marker.
+import fs from 'node:fs';
+
+const MODE = process.env.FAKE_HERMES_MODE || 'normal';
+const STATE = process.env.FAKE_HERMES_STATE;
+if (!STATE) {
+  process.stderr.write('fake hermes: FAKE_HERMES_STATE not set\n');
+  process.exit(2);
+}
+
+function readRegistry() {
+  try {
+    return JSON.parse(fs.readFileSync(STATE, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+function writeRegistry(reg) {
+  fs.writeFileSync(STATE, JSON.stringify(reg, null, 2));
+}
+
+function parseAddArgs(rest) {
+  const name = rest[0];
+  const out = { name, command: '', args: [], env: {} };
+  for (let i = 1; i < rest.length; i += 1) {
+    const flag = rest[i];
+    if (flag === '--command') { out.command = rest[++i]; }
+    else if (flag === '--args') {
+      // The real argparse option uses REMAINDER: everything after --args is a
+      // child-server argument, never another Hermes flag.
+      out.args.push(...rest.slice(i + 1));
+      break;
+    }
+    else if (flag === '--env') {
+      // Live Hermes uses nargs="*": consume every KEY=VALUE until the next
+      // option (not merely one assignment).
+      while (i + 1 < rest.length && !rest[i + 1].startsWith('--')) {
+        const kv = rest[++i];
+        const eq = kv.indexOf('=');
+        out.env[kv.slice(0, eq)] = kv.slice(eq + 1);
+      }
+    }
+  }
+  return out;
+}
+
+function persistAndReportAdded(name, spec) {
+  const reg = readRegistry();
+  reg[name] = {
+    ...spec,
+    tools: MODE === 'zero_tools' ? 0 : 112,
+    testFails: MODE === 'test_fails',
+    testHangs: MODE === 'test_hang',
+  };
+  writeRegistry(reg);
+  process.stdout.write(`Saved '${name}' to fake/config.yaml (112/112 tools enabled)\n`);
+  process.exit(0);
+}
+
+const [, , top, sub, ...rest] = process.argv;
+
+if (top === 'config' && sub === 'path') {
+  if (MODE === 'config_path_unsupported') {
+    process.stderr.write('fake hermes: unsupported command config path\n');
+    process.exit(2);
+  }
+  process.stdout.write(`${STATE}\n`);
+  process.exit(0);
+}
+
+if (top !== 'mcp') {
+  process.stderr.write(`fake hermes: unsupported command ${top}\n`);
+  process.exit(2);
+}
+
+if (sub === 'remove') {
+  const name = rest[0];
+  const reg = readRegistry();
+  delete reg[name];
+  writeRegistry(reg);
+  process.exit(0);
+} else if (sub === 'add') {
+  const spec = parseAddArgs(rest);
+
+  // Live Hermes asks a separate overwrite question before discovery when the
+  // name already exists. Both confirmations are required; cancelling either
+  // returns success from the CLI command handler but leaves the old config in
+  // place. This is the upgrade case the installer must distinguish from a
+  // genuinely persisted replacement.
+  if ((MODE === 'normal' || MODE === 'overwrite_cancel') && readRegistry()[spec.name]) {
+    process.stdout.write(`Server '${spec.name}' already exists. Overwrite? [y/N] `);
+    const rawAnswers = fs.readFileSync(0, 'utf8');
+    const answers = rawAnswers.split('\n').map((s) => s.trim().toLowerCase());
+    if (!['y', 'yes'].includes(answers[0])) {
+      process.stdout.write('Cancelled.\n');
+      process.exit(0);
+    }
+    process.stdout.write('Enable all 112 tools? [Y/n/select] ');
+    if (MODE === 'overwrite_cancel') {
+      process.stdout.write('Cancelled.\n');
+      process.exit(0);
+    }
+    const secondPromptWasAnswered = rawAnswers.split('\n').length >= 3 || Boolean(answers[1]);
+    if (secondPromptWasAnswered && (answers[1] === '' || ['y', 'yes'].includes(answers[1]))) {
+      persistAndReportAdded(spec.name, spec);
+    }
+    process.stdout.write('Cancelled.\n');
+    process.exit(0);
+  }
+
+  if (MODE === 'no_prompt') {
+    persistAndReportAdded(spec.name, spec);
+  } else if (MODE === 'hang') {
+    process.stdout.write('Enable all 112 tools? [Y/n/select] ');
+    // Never read stdin, never exit — the caller must bound this itself.
+    setInterval(() => {}, 1 << 30);
+  } else {
+    // All remaining modes go through the real interactive prompt.
+    process.stdout.write('Enable all 112 tools? [Y/n/select] ');
+    let answered = false;
+    let buf = '';
+    process.stdin.setEncoding('utf8');
+    process.stdin.on('data', (chunk) => {
+      buf += chunk;
+      if (buf.includes('\n')) {
+        answered = true;
+        const answer = buf.slice(0, buf.indexOf('\n')).trim().toLowerCase();
+        if (answer === '' || answer === 'y' || answer === 'yes') {
+          persistAndReportAdded(spec.name, spec);
+        } else {
+          process.stderr.write('\nCancelled.\n');
+          process.exit(1);
+        }
+      }
+    });
+    process.stdin.on('end', () => {
+      if (!answered) {
+        process.stderr.write('\nCancelled (no input).\n');
+        process.exit(1);
+      }
+    });
+  }
+} else if (sub === 'test') {
+  const name = rest[0];
+  const reg = readRegistry();
+  const entry = reg[name];
+  if (entry?.testHangs) {
+    setInterval(() => {}, 1 << 30);
+  } else if (entry && !entry.testFails) {
+    process.stdout.write(`  ✓ Connected (127ms)\n  ✓ Tools discovered: ${entry.tools}\n`);
+    process.exit(0);
+  }
+  // Deliberately return zero: this reproduces the live CLI behavior that made
+  // exit status alone insufficient verification.
+  process.stdout.write('  ✗ Connection failed (100ms): Connection closed\n');
+  process.exit(0);
+} else {
+  process.stderr.write(`fake hermes: unsupported subcommand ${sub}\n`);
+  process.exit(2);
+}

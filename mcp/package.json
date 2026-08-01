@@ -1,0 +1,17 @@
+{
+  "name": "helm-personal-os-mcp",
+  "version": "0.0.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "helm-personal-os-mcp": "src/index.js",
+    "helm-personal-os-mcp-http": "src/http.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "express": "^4.21.0",
+    "express-rate-limit": "^8.5.1"
+  }
+}

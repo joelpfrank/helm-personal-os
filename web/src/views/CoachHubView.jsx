@@ -1,0 +1,81 @@
+import React, { useEffect, useRef, useState } from 'react';
+import { getHashParam, writeHashParams, onHashChange } from '../lib/hash.js';
+import { resolveCoachTab, COACH_TABS } from '../lib/nav.js';
+import TodayView from './TodayView.jsx';
+import ChatView from './ChatView.jsx';
+import GoalsTree from '../components/coach/GoalsTree.jsx';
+import VisionPanel from '../components/coach/VisionPanel.jsx';
+import CheckInHistory from '../components/coach/CheckInHistory.jsx';
+import { useCoachStore } from '../state/coach.js';
+import { useT } from '../lib/i18n.js';
+import '../styles/coach.css';
+
+// Coach hub: composes the pre-simplification Today/Chat/Goals/Vision/
+// Check-ins views behind a compact secondary nav, defaulting to Today
+// (the daily check-in home). See web/src/lib/nav.js for the routing
+// contract, including backward compatibility with old section=today,
+// section=chat and section=library&lib=goals|vision|checkins links.
+
+function readTab() {
+  return resolveCoachTab({
+    section: getHashParam('section'),
+    lib: getHashParam('lib'),
+    ctab: getHashParam('ctab'),
+  });
+}
+
+export default function CoachHubView() {
+  const [tab, setTab] = useState(readTab);
+  const tabRefs = useRef([]);
+  const fetchAll = useCoachStore((s) => s.fetchAll);
+  const t = useT();
+
+  // Cold links can open Vision/Goals/Check-ins without ever mounting TodayView.
+  // Hydrate the shared coach store here so every inner tab owns a complete load
+  // path instead of relying on a sibling view's side effect.
+  useEffect(() => { fetchAll().catch(() => {}); }, [fetchAll]);
+  useEffect(() => onHashChange(() => setTab(readTab())), []);
+
+  function switchTab(id) {
+    writeHashParams({ section: 'coach', ctab: id, lib: null });
+    setTab(id);
+  }
+
+  function moveTabFocus(event, index) {
+    let next = null;
+    if (event.key === 'ArrowRight') next = (index + 1) % COACH_TABS.length;
+    if (event.key === 'ArrowLeft') next = (index - 1 + COACH_TABS.length) % COACH_TABS.length;
+    if (event.key === 'Home') next = 0;
+    if (event.key === 'End') next = COACH_TABS.length - 1;
+    if (next == null) return;
+    event.preventDefault();
+    tabRefs.current[next]?.focus();
+  }
+
+  return (
+    <div className="coach-hub">
+      <nav className="coach-tabs" role="tablist" aria-label="Coach sections">
+        {COACH_TABS.map((id, index) => (
+          <button
+            key={id}
+            ref={(node) => { tabRefs.current[index] = node; }}
+            type="button"
+            role="tab"
+            className={`coach-tab${tab === id ? ' on' : ''}`}
+            aria-selected={tab === id}
+            tabIndex={tab === id ? 0 : -1}
+            onKeyDown={(event) => moveTabFocus(event, index)}
+            onClick={() => switchTab(id)}
+          >{t('nav.' + id)}</button>
+        ))}
+      </nav>
+      <div className="coach-hub-body" role="tabpanel">
+        {tab === 'today'    && <TodayView />}
+        {tab === 'chat'     && <ChatView />}
+        {tab === 'goals'    && <GoalsTree />}
+        {tab === 'vision'   && <VisionPanel />}
+        {tab === 'checkins' && <CheckInHistory />}
+      </div>
+    </div>
+  );
+}

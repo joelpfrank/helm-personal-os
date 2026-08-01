@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Generic per-user LaunchAgent for a portable Helm install. Rendered by
+  install-helm.sh, which substitutes {{NODE}}, {{HOME}}, {{PROJECT}},
+  {{LABEL}}, {{PORT}}.
+
+  Local-only by design: HOST is pinned to 127.0.0.1, so the server binds
+  loopback and nothing else — no LAN or overlay network. The Anthropic key is
+  deliberately NOT in this plist; helm-launch.sh reads it at runtime from
+  a chmod-600 .anthropic-key file if the user chose to add one.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>{{LABEL}}</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>{{PROJECT}}/launchd/helm-launch.sh</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>{{PROJECT}}</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>NODE_ENV</key>
+    <string>production</string>
+    <key>HOST</key>
+    <string>127.0.0.1</string>
+    <key>PORT</key>
+    <string>{{PORT}}</string>
+    <key>DASHBOARD_URL</key>
+    <string>http://127.0.0.1:{{PORT}}</string>
+    <key>HELM_NODE_BIN</key>
+    <string>{{NODE}}</string>
+    <!-- Empty when no external state dir was chosen; the server treats an
+         empty HELM_STATE_DIR as unset and keeps the legacy in-prefix layout. -->
+    <key>HELM_STATE_DIR</key>
+    <string>{{STATE_DIR}}</string>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
+
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+
+  <key>StandardOutPath</key>
+  <string>{{HOME}}/Library/Logs/helm/helm.out</string>
+  <key>StandardErrorPath</key>
+  <string>{{HOME}}/Library/Logs/helm/helm.err</string>
+</dict>
+</plist>

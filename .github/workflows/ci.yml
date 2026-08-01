@@ -1,0 +1,68 @@
+# Continuous integration for the public Helm repository.
+#
+# Deliberately provider-free: no AI-provider credentials exist here and no
+# step performs a paid inference call. Every third-party action is pinned to
+# an immutable full commit SHA (version noted in a comment), and the secret
+# scanner binary is pinned by sha256 so a compromised release cannot slip in.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Test, build, and safety gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Full history: scripts/scan-secrets.mjs --history and the public
+          # safety gate must be able to see every commit, not a shallow tip.
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '20'
+          cache: npm
+      - name: Install ffprobe for committed demo validation
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y ffmpeg
+      - run: npm ci
+      # The canonical gate: tests, web build, public-safety scan, independent
+      # secret scan, and a production npm audit — same command as local dev.
+      - run: npm run check
+      - name: Build portable archive
+        run: npm run package:portable
+      - name: Upload portable archive and checksum
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: Helm-portable-v0
+          path: |
+            dist/Helm-portable-v0.zip
+            dist/Helm-portable-v0.zip.sha256
+          if-no-files-found: error
+          retention-days: 3
+
+  gitleaks:
+    name: Full-history secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Install pinned gitleaks
+        # Pinned release + sha256 verification instead of a marketplace action:
+        # no third-party action code runs, and no license/token is required.
+        run: |
+          curl -sSfL -o gitleaks.tar.gz \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tar.gz" | sha256sum -c -
+          tar -xzf gitleaks.tar.gz gitleaks
+      - name: Scan complete git history
+        # Same invocation as the local `npm run security:gitleaks` script.
+        run: ./gitleaks git --redact --no-banner .
