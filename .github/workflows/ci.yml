@@ -24,7 +24,7 @@ jobs:
           # Full history: scripts/scan-secrets.mjs --history and the public
           # safety gate must be able to see every commit, not a shallow tip.
           fetch-depth: 0
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '20'
           cache: npm
@@ -39,7 +39,7 @@ jobs:
       - name: Build portable archive
         run: npm run package:portable
       - name: Upload portable archive and checksum
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: Helm-portable-v0
           path: |
